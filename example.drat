@@ -1,0 +1,3 @@
+z = \x -> if x then "yes" else "no";
+p = (Print (z True));
+main = {};
