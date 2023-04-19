@@ -17,7 +17,7 @@ let
       polysemy, polysemy-plugin, polysemy-zoo, filepath
       }:
       mkDerivation {
-        pname = "Drat";
+        pname = "Puler";
         version = "0.3.0.0";
         src = ./.;
         isLibrary = false;

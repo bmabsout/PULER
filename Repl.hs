@@ -66,7 +66,7 @@ opts =
   ]
 
 ini :: Repl ()
-ini = liftIO $ putStrLn "Welcome to DRAT!"
+ini = liftIO $ putStrLn "Welcome to PULER!"
 
 repl :: Compiler.Context -> IO ()
 repl ctxt = evalRepl (pure "λ> ") cmd (opts) (Just ':') (Word0 completer) ini

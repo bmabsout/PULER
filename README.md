@@ -4,11 +4,11 @@ install the [nix package manager](https://nixos.org/nix/)
 
 run `nix-shell`
 
-this will throw you into a reproducible shell with all the required tools to run DRAT programs
+this will throw you into a reproducible shell with all the required tools to run PULER programs
 
 compile Main.hs with `ghc -O2 Main.hs`
 
-then run `./Main repl` to start a DRAT repl
+then run `./Main repl` to start a PULER repl
 
 this is an example output:
 ```
