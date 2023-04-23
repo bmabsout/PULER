@@ -22,7 +22,7 @@ data StdFunction
 
 data StdType
   = StdInt | StdBool | StdString | StdUnit
-  deriving (Eq, Ord, Enum, Bounded)
+  deriving (Eq, Ord, Enum, Bounded, Show)
 
 instance Pretty StdType where
     pretty StdInt = "Int"
