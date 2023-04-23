@@ -1,13 +1,13 @@
-{-# LANGUAGE LambdaCase #-}
-{-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
-{-# LANGUAGE TemplateHaskell, KindSignatures, TypeFamilies #-}
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE LambdaCase, BlockArguments #-}
+{-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveGeneric #-}
+
+{-# LANGUAGE FlexibleInstances #-}
+
+{-# LANGUAGE ConstraintKinds #-}
+
 {-# LANGUAGE GADTs, FlexibleContexts, TypeOperators, DataKinds, PolyKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -38,7 +38,7 @@ import qualified BuiltIns
 
 type Scope = M.Map Var Value
 
-type Scoped r = Sem (State Scope:r) 
+type Scoped r = Sem (State Scope:r)
 
 type Effects r = (Member Trace r)
 
@@ -111,7 +111,7 @@ evalCoAlg (BappF (App appedM appWithM)) = do
   appWith <- appWithM
   case apped of
       Vlambda (Lambda (arg :| rest) (LambdaBody bodyScopeM)) -> do
-        let (LambdaBody newLambdaBody) = (LambdaBody $ local (M.insert arg appWith) bodyScopeM)
+        let (LambdaBody newLambdaBody) = LambdaBody $ local (M.insert arg appWith) bodyScopeM
         case rest of
               [] -> newLambdaBody
               _  -> pure $ Vlambda $ Lambda (fromList rest) (LambdaBody newLambdaBody)
@@ -127,14 +127,14 @@ evalCoAlg (BlambdaF (Lambda args expr)) = pure $ Vlambda (Lambda args (LambdaBod
 
 evalCoAlg (BdecsF (Decs decsM)) = do
   decs <- sequence (decsM &> sequenceDec)
-  pure $ VDecs $ (Decs decs)
- 
+  pure $ VDecs $ Decs decs
+
 sequenceDec :: Dec (PossibleAnno Var types) (Scoped r Value)
             -> Scoped r (Dec (PossibleAnno Var types) Value)
 sequenceDec (Dec annoed bodyM) = do
   body <- bodyM
   modify (M.insert (getA annoed) body)
-  pure $ (Dec annoed body)
+  pure $ Dec annoed body
 
 evaluateWithScope :: Effects r => Expr -> Scoped r Value
 evaluateWithScope = hylo evalCoAlg blindAlg
@@ -168,12 +168,12 @@ initScope = enumFrom minBound &> (\x ->
 
 
 evaluate :: Expr -> IO (Scope, Value)
-evaluate expr = runner $ do 
+evaluate expr = runner $ do
   decs <- evaluateWithScope expr
   currMap <- get
-  case currMap M.!? (Var $ fromList "main") of
+  case currMap M.!? Var (fromList "main") of
     Just res -> pure res
     Nothing -> pure decs
  where
   -- runner :: Sem '[State (Scope r expr), Trace, Embed IO] a -> IO a
-  runner = runState initScope &. traceToIO &. runM
+  runner = runState initScope &. traceToStdout &. runM

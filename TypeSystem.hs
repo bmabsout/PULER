@@ -44,7 +44,7 @@ import Data.Monoid
 import Debug.Trace
 import Data.Functor.Const
 import qualified Data.Map.Append as M
-import qualified Data.Text.Prettyprint.Doc as Pretty
+import qualified Prettyprinter as Pretty
 -- import Control.Comonad.Trans.Cofree (CofreeF(..))
 import Data.Void
 
@@ -59,7 +59,7 @@ data Itypes base
 
 makeBaseFunctor ''Itypes
 
-type INamedTypes = Itypes BaseType
+type INamedTypes = Itypes StdType
 type Knowledge = M.Map INamedTypes INamedTypes
 type VarMap = M.Map Var INamedTypes
 type HasFreshs r = Member (State [Name]) r
@@ -89,10 +89,7 @@ unif s = Iunif (N.fromList s)
 toNonEmtpy :: Pretty.Pretty a => a -> N.NonEmpty Char
 toNonEmtpy = Pretty.pretty &. show &. N.fromList
 
-fromStdType :: Types BuiltIns.StdType -> INamedTypes
-fromStdType = fmap BaseType &. toInferrable
-
-baseType =  Tbase &. fromStdType
+baseType =  Tbase &. toInferrable
 unitType = baseType StdUnit
 boolType = baseType StdBool
 intType = baseType StdInt
@@ -162,9 +159,9 @@ bubbleUpConstraints = cataM alg'
     alg' :: TypeContext r
          => ExprF AnnotatedTree
          -> Sem r (Cofree ExprF INamedTypes)
-    alg' t = (:<) <$> (t &> extract & typeOf) <*> pure t 
+    alg' t = (:<) <$> (t &> extract & typeOf) <*> pure t
 
-annotate :: Expr -> Sem '[State [Name], State VarMap, State Constraints] AnnotatedTree 
+annotate :: Expr -> Sem '[State [Name], State VarMap, State Constraints] AnnotatedTree
 annotate expr = do
   annotatedTree <- bubbleUpConstraints expr
   knowledge <- propagateKnowledge
@@ -174,13 +171,13 @@ data InferContext = InferContext [Name] VarMap Constraints
 
 
 initVarMap :: Map Var INamedTypes
-initVarMap = builtInMap &> typeOfBuiltIn &. fromStdType
+initVarMap = builtInMap &> typeOfBuiltIn &. toInferrable
 
 initContext :: InferContext
 initContext = InferContext unificationVars initVarMap mempty
 
 infer :: Expr -> (InferContext, AnnotatedTree)
-infer = inferWithContext &. runState initContext &. run 
+infer = inferWithContext &. runState initContext &. run
 
 inferWithContext :: Expr -> Sem '[State InferContext] AnnotatedTree
 inferWithContext expr = do
@@ -195,7 +192,7 @@ inferWithContext expr = do
   pure inferred
 
 
-fullInfer :: AnnotatedTree -> Either String (Cofree ExprF (Types BaseType))
+fullInfer :: AnnotatedTree -> Either String (Cofree ExprF (Types StdType))
 fullInfer = fmap fullTypes &. sequence
 
 unificationVars :: [Name]
@@ -206,7 +203,7 @@ fresh :: (HasFreshs r, HasConstraints r) => Sem r INamedTypes
 fresh = do
    freshs <- get
    put (tail freshs)
-   let freshType = (Iunif $ head freshs)
+   let freshType = Iunif $ head freshs
    modify (DSets.insert freshType)
    pure freshType
 
@@ -218,32 +215,32 @@ toInferrable = hoist $ \case TarrowF a b -> IarrowF a b
 
 -- fromInferred :: Itypes base -> Either (Types base) String
 fullTypes :: (Pretty.Pretty base) => Itypes base -> Either String (Types base)
-fullTypes = cataM \case 
-                     IarrowF a b -> Right $ Tarrow a b
+fullTypes = cataM \case
+                     IarrowF a b -> Right $ a :-> b
                      IbaseTypeF n -> Right $ Tbase n
                      IunifF x -> Left $ (Pretty.pretty x & show) ++ ": ununified"
                      ImismatchF x -> Left $ (Pretty.pretty x & show) ++ ": Mismatching"
 
 updateUnifs :: Knowledge -> INamedTypes -> INamedTypes
 updateUnifs knowledge = cata \case
-    IunifF x -> knowledge M.! (Iunif x)
+    IunifF x -> knowledge M.! Iunif x
     x -> Core.embed x
 
 occursCheck :: Set INamedTypes -> INamedTypes -> Bool
 occursCheck n = cata \case
-  IunifF x -> S.member (Iunif x) n
+  IunifF x -> Iunif x `S.member` n
   x -> or x
 
 gatherKnowledge :: (HasConstraints r) => Sem r Knowledge
 gatherKnowledge =
-  get >>= 
+  get >>=
     DSets.elems &. S.toList
         &.> (\set -> do
                 let setElems = S.toList set
                 joined <- foldr1 unifyM (setElems &> pure)
                 if occursCheck (S.delete joined set) joined
                 then error "occurs check failed"
-                else pure $ setElems &> (\e -> M.singleton e joined) & mconcat
+                else pure $ setElems &> (`M.singleton` joined) & mconcat
            )
         &. sequence &.> mconcat &.> (\m -> m &> updateUnifs m)
 
