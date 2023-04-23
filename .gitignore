@@ -3,6 +3,7 @@ dist-*
 cabal-dev
 *.history
 *.o
+.direnv/
 *.hi
 *.hie
 *.chi

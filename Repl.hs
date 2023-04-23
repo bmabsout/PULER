@@ -27,6 +27,7 @@ import qualified Polysemy.State as P
 import Control.Monad.Trans.State.Strict (evalStateT, StateT)
 import Control.Monad.State.Class
 import qualified Data.Map as M
+import Distribution.Compat.Lens (_1)
 
 type Repl a = HaskelineT (StateT Compiler.Context IO) a
 
@@ -47,19 +48,18 @@ completer n = do
   return $ filter (isPrefixOf n) (Compiler.renamer context & M.keys &> PrettyStuff.pretty &> show)
 
 -- Commands
-help :: [String] -> Repl ()
-help args = do
+help :: String -> Repl ()
+help _ = do
     m <- lift $ get
     liftIO $ PrettyStuff.print m
 
-typeof :: [String] -> Repl ()
-typeof args = do
-    let statement = unwords args
+typeof :: String -> Repl ()
+typeof statement = do
     (Right typ) <- Compiler.typeOf statement & embedState & runM
     liftIO $ PrettyStuff.print typ
 
 
-opts :: [(String, [String] -> Repl ())]
+opts :: [(String, String -> Repl ())]
 opts =
   [ ("help", help)
   , ("type", typeof)
@@ -68,10 +68,17 @@ opts =
 ini :: Repl ()
 ini = liftIO $ putStrLn "Welcome to DRAT!"
 
-repl :: Compiler.Context -> IO ()
-repl ctxt = evalRepl (pure "λ> ") cmd (opts) (Just ':') (Word0 completer) ini
-       & flip evalStateT ctxt
 
+repl :: Compiler.Context -> IO ()
+repl = evalRepl (const $ pure "λ> ") cmd opts (Just ':') (Just ":m") (Word completer) ini (pure Exit) & evalStateT
+
+-- (const $ pure "λ> ") cmd opts (Just ':') (Word completer) ini undefined
+
+-- Tab completion inside of StateT
+-- repl :: IO ()
+-- repl =
+--   flip evalStateT (3, Set.empty) $
+--     evalRepl (const $ pure ">>> ") cmd opts Nothing Nothing (Word comp) ini final
 
 effectsToMtl :: (MonadIO m, MonadState s m) => Sem [P.State s, Trace, Embed m] a -> m a
 effectsToMtl = embedState &. embedTrace &. runM

@@ -1,12 +1,9 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
-{-# LANGUAGE TemplateHaskell, KindSignatures, TypeFamilies #-}
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE LambdaCase, BlockArguments #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE GADTs, FlexibleContexts, TypeOperators, DataKinds, PolyKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -32,33 +29,32 @@ import Data.Semigroup
 import PrettyStuff
 import Debug.Trace
 import Polysemy
-import PrettyStuff
 import qualified Control.Monad.State.Class as MST
 import qualified Control.Monad.State as MST
 import qualified BuiltIns
 
 data Scoper m a where
   Push :: Var -> Scoper m Var
-  Pop :: Var -> Scoper m () 
+  Pop :: Var -> Scoper m ()
   GetVar :: Var -> Scoper m Var
 makeSem ''Scoper
 
 type Scoped = Sem '[Scoper]
 
-data ScopeError = NotInScope Var
+newtype ScopeError = NotInScope Var
 
 type Renamer = M.Map Var Scope
 
 initRenameState :: Renamer
 initRenameState =
   builtInMap @BuiltIns.StdFunction
-  & M.keys &> (\k -> insertToScope k mempty)
+  & M.keys &> (`insertToScope` mempty)
   & mconcat
 
 rename :: Expr -> (Renamer, Expr)
 rename = renameWithState &. runState initRenameState &. run
 
-renameWithState :: Expr -> Sem '[State Renamer] (Expr)
+renameWithState :: Expr -> Sem '[State Renamer] Expr
 renameWithState = cata renameCoalg &. scoperReInterpreter
 
 
@@ -91,7 +87,7 @@ renameCoalg (EletF (Let decs bodyM)) = do
   return $ Elet (Let (Decs scopedDecs) body)
 renameCoalg expr = Core.embed <$> sequence expr
 
-sequenceLambda :: Traversable f 
+sequenceLambda :: Traversable f
                => Lambda (f Var) (Scoped expr)
                -> Scoped (Lambda (f Var) expr)
 sequenceLambda (Lambda args body) = do
@@ -136,4 +132,4 @@ removeFromScope = M.update \(Scope g l) -> Just (Scope g (tail l))
 varFromScope :: Var -> Renamer -> Var
 varFromScope var map = 
   Var $ N.fromList $ show $ pretty var
-       <> (pretty $ head $ stack $ map M.! var)
+       <> pretty (head $ stack $ map M.! var)

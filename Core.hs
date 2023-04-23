@@ -34,55 +34,50 @@ import Data.Functor.Classes.Generic.Internal
 import Data.Void
 import GHC.Generics
 import GHC.Exts( IsString(..) )
-import Data.Text.Prettyprint.Doc
+import Prettyprinter
 import Flow
 import BuiltIns
+import Control.Monad ((<=<))
 
 type Name = N.NonEmpty Char
 
 newtype Var = Var (N.NonEmpty Char)
     deriving (Eq, Ord)
 
-typeOfBuiltIn :: StdFunction -> Types StdType
-typeOfBuiltIn f
-    | elem f [Mul, Add, Sub] = Tarrow int (Tarrow int int)
-    | elem f [Neg, Pos] = Tarrow int int
-    | elem f [EqInt] = Tarrow int (Tarrow int (Tbase StdBool))
-    | elem f [Print] = Tarrow (Tbase StdString) (Tbase StdUnit)
-    | elem f [Int2Str] = Tarrow (Tbase StdInt) (Tbase StdString)
-  where int = Tbase StdInt
-
-builtInMap :: (Enum a, Bounded a, Pretty a) => Map.Map Var a
-builtInMap = enumOneToOne (pretty &. show &. fromString)
-
-data BaseType = BaseType StdType
-  deriving (Eq, Ord)
-
-instance Pretty BaseType where
-    pretty (BaseType n) = pretty n
-
 data Types types
   = Tarrow (Types types) (Types types)
   | Tbase types
   deriving (Show, Eq, Functor)
 deriveEq1 ''Types
-
 makeBaseFunctor ''Types
+infixr :->
+pattern a :-> b = Tarrow a b
+
+typeOfBuiltIn :: StdFunction -> Types StdType
+typeOfBuiltIn EqInt =  Tbase StdInt :-> Tbase StdInt :-> Tbase StdBool
+typeOfBuiltIn Print = Tbase StdString :-> Tbase StdUnit
+typeOfBuiltIn Int2Str = Tbase StdInt :-> Tbase StdString
+typeOfBuiltIn f
+    | f `elem` [Mul, Add, Sub] = Tbase StdInt :-> Tbase StdInt :-> Tbase StdInt
+    | f `elem` [Neg, Pos] = Tbase StdInt :-> Tbase StdInt
+
+builtInMap :: (Enum a, Bounded a, Pretty a) => Map.Map Var a
+builtInMap = enumOneToOne (pretty &. show &. fromString)
 
 toTypeList :: Types types -> N.NonEmpty (Types types)
 toTypeList x@(Tbase _) = x N.:| []
-toTypeList (Tarrow arg res) = arg N.<| toTypeList res
+toTypeList (arg :-> res) = arg N.<| toTypeList res
 
 
 instance Pretty a => Pretty (Types a) where
-    pretty (Tarrow x y) = pretty x <> " -> " <> pretty y 
-    pretty (Tbase x) = pretty x 
+    pretty (x :-> y) = pretty x <> " -> " <> pretty y
+    pretty (Tbase x) = pretty x
 
 
-type NamedTypes = Types BaseType
+type NamedTypes = Types StdType
 
 instance Show Var where
-  show (Var x) = N.toList x 
+  show (Var x) = N.toList x
 
 instance IsString Var where
   fromString = N.fromList &. Var
@@ -97,7 +92,7 @@ data AnnotatedFlipped anno expr = Annotated expr anno
 deriveBifunctor ''AnnotatedFlipped
 deriveShow2 ''AnnotatedFlipped
 -- trick to let the first arg be the functor acts on
-type Annotated expr anno = AnnotatedFlipped anno expr  
+type Annotated expr anno = AnnotatedFlipped anno expr
 
 data PossibleAnno a b = Annoed (Annotated a b)
                       | NotAnnoed a
@@ -107,8 +102,8 @@ deriveBifunctor ''PossibleAnno
 getA (Annoed (Annotated a _)) = a
 getA (NotAnnoed a) = a
 
-setA (Annoed (Annotated a x)) b = (Annoed (Annotated b x))
-setA (NotAnnoed a) b = (NotAnnoed b)
+setA (Annoed (Annotated a x)) b = Annoed (Annotated b x)
+setA (NotAnnoed a) b = NotAnnoed b
 
 newtype Decs expr = Decs (N.NonEmpty (Dec (PossibleAnno Var NamedTypes) expr))
   deriving (Eq, Functor, Foldable, Traversable)
@@ -129,7 +124,7 @@ data App expr = App expr expr
 
 data Fixer expr = Fixer Var (Lambda (N.NonEmpty Var) expr)
     deriving (Show, Eq, Functor, Foldable, Traversable)
- 
+
 
 data Expr
   = Evar Var
@@ -143,12 +138,11 @@ data Expr
   | Eannotation (Annotated Expr NamedTypes)
     deriving (Eq, Generic)
 makeBaseFunctor ''Expr
--- $(deriveBifunctor ''ExprF)
 
 
 cataM :: (Monad m, Traversable (Base a), Recursive a)
       => (Base a b -> m b) -> a -> m b
-cataM f = (>>= f) . cata (traverse (>>= f))
+cataM f = f <=< cata (traverse (>>= f))
 
 
 app x y = Eapp (App x y)

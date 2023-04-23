@@ -1,8 +1,9 @@
-{-# LANGUAGE TemplateHaskell, KindSignatures, TypeFamilies #-}
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 module Emitter(module Emitter) where
 
 import Core
@@ -60,8 +61,8 @@ runtime = vsep
     , ""
     ]
 
-type Typed a = Annotated a (Types BaseType)
-type Env = Map.Map Var (Types BaseType)
+type Typed a = Annotated a NamedTypes
+type Env = Map.Map Var NamedTypes
 
 data WithEnv
   = Wvar Var
@@ -76,10 +77,10 @@ makeBaseFunctor ''WithEnv
 toSet :: Ord a => N.NonEmpty a -> Set a
 toSet = fromList . N.toList
 
--- zipArgTypes :: (N.NonEmpty Var) -> Types BaseType -> Env
+-- zipArgTypes :: (N.NonEmpty Var) -> NamedTypes -> Env
 -- zipArgTypes args t = fromList $ zipWith Annotated (N.toList args) (gatherArgs t)
 
-freeVars :: CofreeF ExprF (Types BaseType) Env -> Env
+freeVars :: CofreeF ExprF NamedTypes Env -> Env
 freeVars (t :< EvarF var) = Map.singleton var t
 freeVars (_ :< ElambdaF (Lambda args expr)) = Map.withoutKeys expr (toSet args)
 
@@ -97,35 +98,35 @@ freeVarsDecs decs =
          & N.unzip & (\(names, exprs) -> (toSet names, Foldable.fold exprs))
 
 
-addFreeVars :: Cofree ExprF (Types BaseType) -> Cofree ExprF (Types BaseType, Env)
-addFreeVars = 
+addFreeVars :: Cofree ExprF NamedTypes -> Cofree ExprF (NamedTypes, Env)
+addFreeVars =
     cata (\cofree@(t :< c) -> (t, cofree &> extract &. snd & freeVars) Cofree.:< c)
 
 
-recursiveLets :: Cofree ExprF (Types BaseType) -> Cofree ExprF (Types BaseType)
+recursiveLets :: Cofree ExprF NamedTypes -> Cofree ExprF NamedTypes
 recursiveLets = cata $ \case
-        (t :< EletF (Let (Decs decs) expr)) -> 
+        (t :< EletF (Let (Decs decs) expr)) ->
             cata (\case
-               (NonEmptyF hd Nothing) -> t Cofree.:< (EletF $ Let (Decs $ hd N.:| []) expr)
-               (NonEmptyF hd (Just rest)) -> t Cofree.:< (EletF $ Let (Decs $ hd N.:| []) rest)
+               (NonEmptyF hd Nothing) -> t Cofree.:< EletF (Let (Decs $ hd N.:| []) expr)
+               (NonEmptyF hd (Just rest)) -> t Cofree.:< EletF (Let (Decs $ hd N.:| []) rest)
             ) decs
         x -> Core.embed x
 
--- replaceHash :: Cofree ExprF (Types BaseType) -> Cofree ExprF (Types BaseType)
+-- replaceHash :: Cofree ExprF NamedTypes -> Cofree ExprF NamedTypes
 -- replaceHash = hoist $ \case
 --     (t :< EvarF (Var x)) -> (t :< EvarF (Var $ x & N.toList & convertToPython & N.fromList))
 --   where convertToPython x = x &> (\c -> if c == '#' then '_' else c)
 
 
-emit :: Cofree ExprF (Types BaseType) -> (String, String)
+emit :: Cofree ExprF NamedTypes -> (String, String)
 emit = recursiveLets
     &. cataM emitF
     &. run
     &. show
     &.> (\c -> if c == '#' then '_' else c)
-    &. (\x -> (show runtime, x))
+    &. (show runtime, )
 
-emitF :: CofreeF ExprF (Types BaseType) (Doc a) -> Sem r (Doc a)
+emitF :: CofreeF ExprF NamedTypes (Doc a) -> Sem r (Doc a)
 emitF (t :< ElitF (Lint i)) = pure $ pretty i
 emitF (t :< ElitF (Lbool b)) = pure $ pretty b
 emitF (t :< ElitF (Lstring s)) = pure $ pretty s
@@ -140,7 +141,7 @@ emitF (t :< EifF (If shouldBeBool thenThis elseThis)) = pure $
         <> indent 4 elseThis <> line
     <> ")"
 emitF (t :< EappF (App xy x)) = pure $ xy <> "(" <> x <> ")"
-emitF (t :< ElambdaF (Lambda args expr)) = pure $ 
+emitF (t :< ElambdaF (Lambda args expr)) = pure $
     "curry(lambda " <> arguments  <> ":(" <> line <> indent 4 expr <> line <> "))"
     where arguments = punctuate comma (args &> pretty & N.toList) & hsep
 emitF (t :< EfixF (Fixer f (Lambda args expr))) = pure $
@@ -156,7 +157,7 @@ emitF (t :< EletF (Let (Decs decs) expr)) = pure $
 emitF (t :< EannotationF (Annotated annoed _)) = pure $ annoed
 
 emitDec (Dec maybeAnnoed x) =
-    (pretty $ getA maybeAnnoed) <> " = " <> x
+    pretty (getA maybeAnnoed) <> " = " <> x
 
 emitStdFunction :: StdFunction -> [Doc a] -> Doc a
 emitStdFunction Mul (a:b:_) = a <> "*" <> b

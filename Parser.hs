@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 -- {-# LANGUAGE UndecidableInstances #-}
 
@@ -21,27 +19,27 @@ import Data.Foldable
 
 import Core
 import Parsable
-import Data.Text.Prettyprint.Doc (Pretty(pretty))
+import Prettyprinter (Pretty(pretty))
 
 keywords = ["if", "then", "else", "in", "fix"]
 
-isKeyword n = elem n keywords
+isKeyword n = n `elem` keywords
 
 instance Parsable Var where
   parser = do
     var <- M.label "a variable" ((N.:|) <$> M.letterChar <*> M.takeWhileP Nothing isAlphaNum)
     guard (not $ isKeyword (N.toList var))
     -- annotation <- 
-    (return (Var var) M.<?> "a variable")
+    return (Var var) M.<?> "a variable"
 
 instance (Parsable var, Parsable expr) => Parsable (Dec var expr) where
   parser = Dec <$> parser <*> (midOp "=" *> parser)
 
 instance Parsable a => Parsable (Decs a) where
-  parser = Decs <$> parser `sepBy1` (midOp ";")
+  parser = Decs <$> parser `sepBy1` midOp ";"
 
 instance Parsable Lit where
-  parser = 
+  parser =
       (Lint <$> L.decimal)
       <|> (Lbool <$> boolParser)
       <|> (Lstring <$> stringParser)
@@ -80,17 +78,13 @@ instance (Parsable body) => Parsable (Fixer body) where
 
 typesParser :: Parsable name => Parser (Types name)
 typesParser =
-    M.try (Tarrow <$> (parens typesParser <|> Tbase <$> parser)
-                  <* midOp "->"
-                  <*> typesParser)
+    M.try ((:->) <$> (parens typesParser <|> Tbase <$> parser)
+                 <* midOp "->"
+                 <*> typesParser)
     <|> (Tbase <$> parser)
 
 instance Parsable StdType where
   parser = allInhabitants &> (\x -> (pretty x & show & M.string & M.try) &> const x) & asum
-
-instance Parsable BaseType where
-  parser = BaseType <$> parser
-  --((N.:|) <$> M.upperChar <*> M.takeWhileP Nothing isAlphaNum)
 
 instance (Parsable a, Parsable b) => Parsable (PossibleAnno a b) where
   parser = M.try (Annoed <$> parser) <|> NotAnnoed <$> parser
@@ -117,18 +111,18 @@ ops = [ [ prefix "-" Neg
       ]
 
 binary :: String -> StdFunction -> Operator Parser Expr
-binary name f = InfixL (M.try $ binaryExpr <$ (midOp name))
+binary name f = InfixL (M.try $ binaryExpr <$ midOp name)
   where binaryExpr x y = app (app (var $ show f) x) y
 
 prefix :: String -> StdFunction -> Operator Parser Expr
-prefix name f = Prefix (M.try $ app (var $ show f) <$ (midOp name))
+prefix name f = Prefix (M.try $ app (var $ show f) <$ midOp name)
 
 exprParser :: Parser Expr
-exprParser = makeExprParser ((M.try (Eannotation <$> annoParser appAndParensParser) <|> appAndParensParser)) ops
+exprParser = makeExprParser (M.try (Eannotation <$> annoParser appAndParensParser) <|> appAndParensParser) ops
 
 appAndParensParser :: Parser Expr
 appAndParensParser =
-  (parens $ foldl1 (\x y -> Eapp (App x y)) <$> (exprParser `sepBy1` spaceForcer))
+  parens (foldl1 (\x y -> Eapp (App x y)) <$> (exprParser `sepBy1` spaceForcer))
   <|> noRecParser
 
 instance Parsable Expr where

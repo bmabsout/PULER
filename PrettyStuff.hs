@@ -1,11 +1,9 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module PrettyStuff (module PrettyStuff, module Data.Text.Prettyprint.Doc) where
+module PrettyStuff (module PrettyStuff, module Prettyprinter) where
 
 import Core
 import TypeSystem
@@ -21,10 +19,10 @@ import Control.Comonad
 import Polysemy
 import BuiltIns
 import Data.Coerce
-import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Util
+import Prettyprinter
+import Prettyprinter.Util
 import qualified System.IO
-import Data.Text.Prettyprint.Doc.Render.Text
+import Prettyprinter.Render.Text
 
 instance Pretty Lit where
     pretty (Lint i) = pretty i
@@ -36,8 +34,8 @@ instance Pretty Lit where
 instance (Pretty base, Ord base) => Pretty (Itypes base) where
     pretty (Iarrow x@(Iarrow _ _) y) = "(" <> pretty x <> ")" <> "->" <> pretty y
     pretty (Iarrow x y) = pretty x <> "->" <> pretty y
-    pretty (IbaseType x) = pretty x 
-    pretty (Iunif x) = "?" <> pretty x 
+    pretty (IbaseType x) = pretty x
+    pretty (Iunif x) = "?" <> pretty x
     pretty (Imismatch l) = pretty (S.fromList l)
 
 instance (Pretty k, Pretty v) => Pretty (M.Map k v) where
@@ -47,8 +45,8 @@ instance (Pretty expr, Pretty anno) => Pretty (Annotated expr anno) where
     pretty (Annotated a b) = pretty a <> ":" <> pretty b
 
 instance (Pretty a, Pretty b) => Pretty (PossibleAnno a b) where
-    pretty (Annoed a) = pretty a 
-    pretty (NotAnnoed b) = pretty b 
+    pretty (Annoed a) = pretty a
+    pretty (NotAnnoed b) = pretty b
 
 instance Pretty Var where
     pretty (Var name) = pretty name
@@ -69,7 +67,7 @@ instance Pretty expr => Pretty (If expr) where
     pretty (If expr yes no) = align $ vsep ["if " <> pretty expr, "then " <> pretty yes, "else " <> pretty no]
 
 instance (Pretty arg,Pretty expr) => Pretty (Lambda (N.NonEmpty arg) expr) where
-    pretty (Lambda args body) = "\\" <> sep (N.toList $ pretty <$> args) <+>  "->" <> nest 4 (softline <> (pretty body))
+    pretty (Lambda args body) = "\\" <> sep (N.toList $ pretty <$> args) <+>  "->" <> nest 4 (softline <> pretty body)
 
 instance (Pretty expr) => Pretty (Fixer expr) where
     pretty (Fixer f lambda) = "fix " <> pretty f <+> pretty lambda
