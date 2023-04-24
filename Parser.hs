@@ -125,6 +125,7 @@ appAndParensParser =
   parens (foldl1 (\x y -> Eapp (App x y)) <$> (exprParser `sepBy1` spaceForcer))
   <|> noRecParser
 
+
 instance Parsable Expr where
   parser = exprParser
 

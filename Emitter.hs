@@ -8,21 +8,18 @@ module Emitter(module Emitter) where
 
 import Core
 import qualified Data.List.NonEmpty as N
-import Data.List
 import qualified Data.Map as Map
 import qualified Data.Foldable as Foldable
-import Data.Functor.Compose
-import Data.Functor.Identity
 import Control.Comonad.Trans.Cofree (CofreeF(..))
-import Control.Comonad.Cofree hiding ((:<))
+import Control.Comonad.Cofree ( Cofree )
 import qualified Control.Comonad.Cofree as Cofree
 import Data.Functor.Base
 import Control.Comonad
 import Data.Functor.Foldable.TH
 import Data.Set
 import Polysemy
-import TypeSystem
-import PrettyStuff
+import Prettyprinter
+
 -- import Data.Text.Prettyprint.Doc.Render.String
 
 data Instruction
@@ -30,7 +27,7 @@ data Instruction
 -- type CFunction
 --     = (Dec Var (Lambda (N.NonEmpty Var) [Instruction]))
 
-runtime :: Doc a
+runtime :: Doc a -- These are the required python components which are relied upon by the compiled code
 runtime = vsep
     [ "from inspect import signature"
     , ""

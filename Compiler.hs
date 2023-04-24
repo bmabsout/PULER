@@ -1,10 +1,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 
 module Compiler where
 
@@ -13,8 +11,6 @@ import qualified Parser
 import qualified Renamer
 import qualified Evaluator
 import qualified Emitter
-import qualified PrettyStuff as Pretty
-import PrettyStuff
 import qualified TypeSystem
 import Data.Void
 import qualified Data.List.NonEmpty as N
@@ -23,20 +19,30 @@ import Polysemy.State
 import Polysemy.Trace
 
 import Data.Bifunctor
-import qualified Emitter
+import Prettyprinter
+import System.IO
+import Prettyprinter.Render.Text (renderIO)
 
 data Context = Context { renamer :: Renamer.Renamer
                        , scope :: Evaluator.Scope
                        , inferContext :: TypeSystem.InferContext
                        }
 
-init = Context Renamer.initRenameState Evaluator.initScope TypeSystem.initContext
-
 instance Pretty Context where
     pretty (Context renamer evalScope typeScope) = pretty renamer <+> pretty evalScope <+> pretty typeScope
 
+init = Context Renamer.initRenameState Evaluator.initScope TypeSystem.initContext
+
+pprint :: Pretty a => a -> IO ()
+pprint = pretty &. (<> line) &. layoutSmart (LayoutOptions (AvailablePerLine 40 1)) &. renderIO stdout
+
+-- instance Pretty (Sem r b) where
+--     pretty = const "<body>"
+
+
 parseAndEval s = second Evaluator.evaluate (Edecs <$> Parser.parseDecs s)
 
+stepsBreakdown :: String -> IO (Maybe (String, Context))
 stepsBreakdown s = do
     putStrLn "-----INPUT-----"
     putStrLn s
@@ -48,26 +54,26 @@ stepsBreakdown s = do
             pure Nothing
         Right parsed -> do
             putStrLn "-----PARSED-----"
-            Pretty.print parsed
+            pprint parsed
             putStrLn "-----RENAMED-----"
             let (renameCtx, renamed) = Renamer.rename parsed
-            Pretty.print renamed
+            pprint renamed
             putStrLn "-----INFERRED-----"
             let (inferredCtx, inferredTree) = TypeSystem.infer renamed
-            Pretty.print inferredTree
+            pprint inferredTree
             putStrLn "-----CHECKED-----"
             case TypeSystem.fullInfer inferredTree of
                 Left err -> do
-                    Pretty.print (err, inferredCtx)
+                    pprint (err, inferredCtx)
                     pure Nothing
                 Right typeChecks -> do
-                    Pretty.print "Typechecks!"
+                    pprint "Typechecks!"
                     putStrLn "-----EVALUATED-----"
                     (evaluatorCtx, evaluated) <- Evaluator.evaluate renamed
-                    Pretty.print evaluated
+                    pprint evaluated
                     putStrLn "-----EMITTED-----"
                     let (runtime, emmited) = Emitter.emit typeChecks
-                    Pretty.print (emmited)
+                    pprint emmited
                     return $ Just (runtime ++ emmited, Context {
                             renamer = renameCtx
                           , scope = evaluatorCtx

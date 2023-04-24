@@ -26,12 +26,12 @@ import Data.Bifunctor
 import Polysemy.State
 import Data.Coerce
 import Data.Semigroup
-import PrettyStuff
 import Debug.Trace
 import Polysemy
 import qualified Control.Monad.State.Class as MST
 import qualified Control.Monad.State as MST
 import qualified BuiltIns
+import Prettyprinter
 
 data Scoper m a where
   Push :: Var -> Scoper m Var

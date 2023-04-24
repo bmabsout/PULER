@@ -7,6 +7,7 @@ import System.FilePath
 import Flow
 import Compiler
 import Repl
+import GHC.Stack (HasCallStack)
 
 correct = unlines
     [ "x = 3;"
@@ -57,6 +58,7 @@ wrong3 = unlines
     ]
 
 
+main :: IO ()
 main = do
     args <- getArgs
     case args of
@@ -74,4 +76,4 @@ main = do
                 Nothing -> exitWith (ExitFailure 1)
                 Just (s, _) -> do
                     writeFile (takeBaseName f ++ ".py") s
-                    exitWith ExitSuccess
+                    exitSuccess

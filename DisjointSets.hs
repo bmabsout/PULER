@@ -7,15 +7,15 @@ import qualified Data.Map as Map
 import qualified Data.Foldable as F
 import qualified Data.Set as Set
 import Data.Maybe (fromMaybe)
-import Data.Text.Prettyprint.Doc
+import Prettyprinter ( Pretty(pretty) )
 
 
-newtype DisjointSets a 
+newtype DisjointSets a
     = DisjointSets (Map.Map a (Set.Set a))
     deriving (Eq, Ord, Show, Monoid)
 
 instance (Ord a, Pretty a) => Pretty (DisjointSets a) where
-    pretty = pretty . elems 
+    pretty = pretty . elems
 
 instance (Pretty a) => Pretty (Set.Set a) where
     pretty = pretty . Set.toList
@@ -37,7 +37,7 @@ find x pmap = fromMaybe (Set.singleton x) (Map.lookup x pmap)
 
 insert x = joinElems x x
 
-elems :: Ord a => DisjointSets a -> (Set.Set (Set.Set a))
+elems :: Ord a => DisjointSets a -> Set.Set (Set.Set a)
 elems (DisjointSets m) = Set.fromList (Map.elems m)
 
 instance (Ord a) => Semigroup (DisjointSets a) where

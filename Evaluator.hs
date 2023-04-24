@@ -31,10 +31,10 @@ import Data.Functor.Foldable.TH
 import Data.Function
 import Data.Profunctor
 import Polysemy
-import PrettyStuff
 import Polysemy.State
 import Polysemy.Trace
 import qualified BuiltIns
+import Prettyprinter (Pretty(pretty))
 
 type Scope = M.Map Var Value
 
@@ -51,6 +51,13 @@ data Value
   | Vlambda (Lambda (N.NonEmpty Var) LambdaBody)
   | VDecs (Decs Value)
   | Empty
+
+instance Pretty Value where
+    pretty (Vlambda lam) = pretty lam
+    pretty (VDecs decs) = pretty decs
+    pretty (Vlit lit) = pretty lit
+    pretty Empty = "<empty>"
+
 
 data Blind
   = Bvar Var
@@ -76,12 +83,6 @@ blindAlg (Efix x) = BfixF x
 blindAlg (Elit x) = BlitF x
 blindAlg (Eannotation x) = BannotationF x
 
-instance Pretty Value where
-    pretty (Vlambda lam) = pretty lam
-    pretty (VDecs decs) = pretty decs
-    pretty (Vlit lit) = pretty lit
-    pretty Empty = "<empty>"
-
 forget :: Member (State s) r => Sem r a -> Sem r a
 forget m = do
   s <- get
@@ -98,7 +99,7 @@ evalCoAlg (BvarF var) =
   get &> (M.!? var) &> fromMaybe (error (show var ++ " is not in scope"))
 
 evalCoAlg (BletF (Let (Decs decsM) scopedM)) = forget $
-  sequence (decsM &> sequenceDec) >> scopedM
+  sequence_ (decsM &> sequenceDec) >> scopedM
 
 evalCoAlg (BifF (If boolBxprM e1 e2)) = do
   boolBxpr <- boolBxprM
@@ -148,16 +149,22 @@ funcToLam BuiltIns.Pos = unaryLam Lint id
 funcToLam BuiltIns.Neg = unaryLam Lint negate
 funcToLam BuiltIns.Int2Str = unaryLam Lstring show
 funcToLam BuiltIns.Print = Vlambda $ Lambda ("printMe":| []) $ LambdaBody $ get >>= \m ->
-  let printMe = show $ pretty $ m M.! "printMe"
-  in trace printMe >> pure (Vlit $ Lunit)
+  let printMe = m M.! "printMe" & pretty & show
+  in trace printMe >> pure (Vlit Lunit)
 
 binaryLam :: (t -> Lit) -> (Int -> Int -> t) -> Value
-binaryLam resType f = Vlambda $ Lambda ("a" :| ["b"]) $ LambdaBody $ get >>= \m -> do
-   return $ Vlit $ resType $ deInt (m M.! "a") `f` deInt (m M.! "b")
+binaryLam resType f = 
+  (LambdaBody do
+      m <- get
+      pure (deInt (m M.! "a") `f` deInt (m M.! "b") & resType & Vlit)
+  ) & Lambda ("a":| ["b"]) & Vlambda
 
 unaryLam :: (t -> Lit) -> (Int -> t) -> Value
-unaryLam resType f = Vlambda $ Lambda ("c":| []) $ LambdaBody $ get &> \m ->
-   Vlit $ resType $ f $ deInt (m M.! "c")
+unaryLam resType f =
+  (LambdaBody do
+      m <- get
+      pure (deInt (m M.! "c") & f & resType & Vlit)
+  ) & Lambda ("c":| []) & Vlambda
 
 deInt (Vlit (Lint v)) = v
 -- deString (Vlit (LStr v)) = v
@@ -175,5 +182,6 @@ evaluate expr = runner $ do
     Just res -> pure res
     Nothing -> pure decs
  where
-  -- runner :: Sem '[State (Scope r expr), Trace, Embed IO] a -> IO a
+  runner :: Sem '[State Scope, Trace, Embed IO] a
+                  -> IO (Scope, a)
   runner = runState initScope &. traceToStdout &. runM

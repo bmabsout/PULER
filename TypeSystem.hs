@@ -1,14 +1,12 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
-{-# LANGUAGE TemplateHaskell, KindSignatures, TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
 {-# LANGUAGE GADTs, FlexibleContexts, TypeOperators, DataKinds, PolyKinds, RankNTypes #-}
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, BlockArguments #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE LambdaCase, BlockArguments #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -44,11 +42,12 @@ import Data.Monoid
 import Debug.Trace
 import Data.Functor.Const
 import qualified Data.Map.Append as M
-import qualified Prettyprinter as Pretty
+import Prettyprinter (Pretty, pretty)
 -- import Control.Comonad.Trans.Cofree (CofreeF(..))
 import Data.Void
 
 import BuiltIns
+import GHC.Stack (HasCallStack)
 
 data Itypes base
   = Iunif Name
@@ -56,21 +55,7 @@ data Itypes base
   | Iarrow (Itypes base) (Itypes base)
   | Imismatch [Itypes base]
   deriving (Show, Eq, Ord, Functor)
-
 makeBaseFunctor ''Itypes
-
-type INamedTypes = Itypes StdType
-type Knowledge = M.Map INamedTypes INamedTypes
-type VarMap = M.Map Var INamedTypes
-type HasFreshs r = Member (State [Name]) r
-type HasVarMap r = Member (State VarMap) r
-type HasConstraints r = Member (State Constraints) r
-type TypeContext r = (HasFreshs r, HasConstraints r, HasVarMap r)
-type AnnotatedTree = Cofree ExprF INamedTypes
-type Constraints = DisjointSets INamedTypes
-
-nubQuick :: Ord a => [a] -> [a]
-nubQuick = S.fromList &. S.toList
 
 instance Ord base => Semigroup (Itypes base) where
   -- this is actually a join semilattice
@@ -84,10 +69,36 @@ instance Ord base => Semigroup (Itypes base) where
   x <> (Imismatch l) = if x `elem` l then x else Imismatch (nubQuick $ x:l)
   a <> b = Imismatch [a, b]
 
+instance (Pretty base, Ord base) => Pretty (Itypes base) where
+    pretty (Iarrow x@(Iarrow _ _) y) = "(" <> pretty x <> ")" <> "->" <> pretty y
+    pretty (Iarrow x y) = pretty x <> "->" <> pretty y
+    pretty (IbaseType x) = pretty x
+    pretty (Iunif x) = "?" <> pretty x
+    pretty (Imismatch l) = pretty (S.fromList l)
+
+type INamedTypes = Itypes StdType
+type Knowledge = M.Map INamedTypes INamedTypes
+type VarMap = M.Map Var INamedTypes
+type HasFreshs r = Member (State [Name]) r
+type HasVarMap r = Member (State VarMap) r
+type HasConstraints r = Member (State Constraints) r
+type TypeContext r = (HasFreshs r, HasConstraints r, HasVarMap r)
+type Constraints = DisjointSets INamedTypes
+type AnnotatedTree = Cofree ExprF INamedTypes
+
+instance (Pretty (a (Cofree a b)), Pretty b) => Pretty (Cofree a b) where
+    pretty (a :< b) = pretty b <> if isBuiltIn then "" else (":" <> pretty a)
+        where isBuiltIn = M.member (show $ pretty b) builtIns
+
+
+nubQuick :: Ord a => [a] -> [a]
+nubQuick = S.fromList &. S.toList
+
+
 unif s = Iunif (N.fromList s)
 
-toNonEmtpy :: Pretty.Pretty a => a -> N.NonEmpty Char
-toNonEmtpy = Pretty.pretty &. show &. N.fromList
+toNonEmtpy :: Pretty a => a -> N.NonEmpty Char
+toNonEmtpy = pretty &. show &. N.fromList
 
 baseType =  Tbase &. toInferrable
 unitType = baseType StdUnit
@@ -168,7 +179,10 @@ annotate expr = do
   pure $ fillTypes knowledge annotatedTree
 
 data InferContext = InferContext [Name] VarMap Constraints
-
+instance (Pretty k, Pretty v) => Pretty (Map k v) where
+    pretty = pretty . M.toList
+instance Pretty InferContext where
+  pretty (InferContext unifs varmap constraints) = pretty (varmap, constraints)
 
 initVarMap :: Map Var INamedTypes
 initVarMap = builtInMap &> typeOfBuiltIn &. toInferrable
@@ -214,12 +228,12 @@ toInferrable = hoist $ \case TarrowF a b -> IarrowF a b
                              TbaseF n -> IbaseTypeF n
 
 -- fromInferred :: Itypes base -> Either (Types base) String
-fullTypes :: (Pretty.Pretty base) => Itypes base -> Either String (Types base)
+fullTypes :: (Pretty base) => Itypes base -> Either String (Types base)
 fullTypes = cataM \case
                      IarrowF a b -> Right $ a :-> b
                      IbaseTypeF n -> Right $ Tbase n
-                     IunifF x -> Left $ (Pretty.pretty x & show) ++ ": ununified"
-                     ImismatchF x -> Left $ (Pretty.pretty x & show) ++ ": Mismatching"
+                     IunifF x -> Left $ (pretty x & show) ++ ": ununified"
+                     ImismatchF x -> Left $ (pretty x & show) ++ ": Mismatching"
 
 updateUnifs :: Knowledge -> INamedTypes -> INamedTypes
 updateUnifs knowledge = cata \case
