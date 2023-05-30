@@ -1,0 +1,118 @@
+% BU ECE template for MS thesis and PhD dissertation.
+%
+%==========================================================================%
+% MAIN PREAMBLE 
+%==========================================================================%
+\documentclass[12pt,letterpaper]{report}          % Single-sided printing for the library
+%\documentclass[12pt,twoside]{report} % Double-sided printing
+\usepackage[intlimits]{amsmath}
+\usepackage{amsfonts,amssymb}
+\DeclareSymbolFontAlphabet{\mathbb}{AMSb}
+\usepackage[numbers, square]{natbib}
+% \usepackage{apalike}
+\usepackage{float}
+\usepackage[bf]{caption}       
+% \setcaptionmargin{0.5in}
+\usepackage{fancyhdr}
+%\usepackage{fancyheadings}
+% \usepackage{fancybox}
+% \usepackage{ifthen}
+\usepackage{bu_ece_thesis}
+\usepackage{url}
+\usepackage{lscape,afterpage}
+\usepackage{xspace}
+\usepackage{epstopdf} 
+\usepackage{subfig}
+\usepackage{minted}
+\usepackage{svg}
+\usepackage{hyperref}
+%==========================================================================%
+%%% graphicx and pdf creation
+\usepackage{graphicx}
+\usepackage{appendix}
+%\usepackage{psfrag}
+%\DeclareGraphicsExtensions{.eps}   % extension for included graphics
+%\usepackage{thumbpdf}              % thumbnails for ps2pdf
+%\usepackage[ps2pdf,                % hyper-references for ps2pdf
+%bookmarks=true,%                   % generate bookmarks ...
+%bookmarksnumbered=true,%           % ... with numbers
+%hypertexnames=false,%              % needed for correct links to figures !!!
+%breaklinks=true,%                  % breaks lines, but links are very small
+%linkbordercolor={0 0 1},%          % blue frames around links
+% pdfborder={0 0 112.0}]{hyperref}%  % border-width of frames 
+%                                   % will be multiplied with 0.009 by ps2pdf
+%\hypersetup{
+%  pdfauthor   = {Joe Graduate <joe.graduate@bu.edu>},
+%  pdftitle    = {dissertation.pdf},
+%  pdfsubject  = {doctoral dissertations},
+%  pdfkeywords = {mathematics, science, technology},
+%  pdfcreator  = {LaTeX with hyperref package},
+%  pdfproducer = {dvips + ps2pdf}
+%}
+\hypersetup{
+    pdfauthor={Bassel El Mabsout <bmabsout@bu.edu>},
+    pdftitle={MastersThesis.pdf},
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=blue,
+}
+\bibliographystyle{abbrvnat}
+%==========================================================================%
+% customized commands can be placed here
+%\newcommand{\figref}[1]{Figure~\ref{#1}}
+%\newcommand{\chapref}[1]{Chapter~\ref{#1}}
+%\newcommand{\latex}{\LaTeX\xspace}
+\newcommand{\PULER}{\mathsf{PULER}}
+\newcommand{\key}[1]{\langle #1 \rangle}
+%==========================================================================%
+
+%==========================================================================%
+% BEGIN
+%==========================================================================%
+\begin{document}
+
+% The preliminary pages
+\include{Prelim/prelim}        
+\cleardoublepage
+
+% -------------------------------------
+% CHAPTERS
+% -------------------------------------
+\include{chapters/intro}
+\cleardoublepage
+
+\include{chapters/expression_problem}
+\cleardoublepage
+
+\include{chapters/compiler_design}
+\cleardoublepage
+
+\include{chapters/puler}
+\cleardoublepage
+
+\include{chapters/examples}
+\cleardoublepage
+
+\include{chapters/installation}
+\cleardoublepage
+
+\include{chapters/conclusion}
+\cleardoublepage
+
+%\appendix
+\begin{appendices}
+\include{Appendix/Appendix}
+\end{appendices}
+%==========================================================================%
+% Bibliography
+\newpage
+\singlespace
+
+
+% each subdirectory can have its own BiBTeX file
+\bibliography{thesis}
+\cleardoublepage
+
+%==========================================================================%
+\end{document}

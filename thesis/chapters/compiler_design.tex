@@ -1,0 +1,132 @@
+\chapter{Compiler Design}
+\label{compiler}
+\thispagestyle{myheadings}
+
+
+On the implementation of compilers written in Haskell specifically, the work by \citet{najd2017trees} presents and implements "Trees that grow", a technique for "decorating" ADTs by using type families.
+They then rewrite the internals of the Glasgow Haskell Compiler (GHC) \cite{GHC} to make use of the method.
+In GHC, the data types for these transformations are large (dozens of types, hundreds of constructors) making them difficult to maintain.
+Their solution involves defining a single extensible ADT with Haskell's possible expressions.
+This allows different "decorations" of Haskell's Abstract Syntax Tree (AST) to be defined in separate parts of the compiler.
+Plugin writers then benefit from reusing the compiler as a library when extending the language.
+
+In the $\PULER$ compiler, following the Tree Shaping method, each language construct is given a separate core parameterized type which is then reused across transformations.
+We then make use of deriving mechanisms to create reusable functionality across trees composed of these types.
+For example the following is the definition for the datatype of a Let expression:
+\begin{minted}{haskell}
+data Let expr = Let (Decs expr) expr
+    deriving (Eq, Functor, Foldable, Traversable)
+\end{minted}
+This technique allows us to define dependencies between language constructs (here let expressions use declarations) without constraining the final tree structure and decorations added.
+The language designer can then work with each structure on its own, and then define an ADT combining them.
+This allows the separation of the logic handling each type of expression in the language from the logic handling their composition.
+As an example, we show how the parser for let expressions is defined:
+\begin{minted}{haskell}
+instance Parsable a => Parsable (Let a) where
+  parser = Let
+      <$> (begKeyword "let" *> parser)
+      <*> (midKeyword "in" *> parser)
+\end{minted}
+Typeclasses allow us to define how each piece of the language can be parsed while remaining generic with respect to how subexpressions are composed.
+Contrasting this with the "Trees that grow" method, the structure of the language is solidified in a single ADT, and while they allow open extensions to some parts of the language, they cannot introduce new language constructs easily.
+More information about the syntax of $\PULER$ is provided in Section~\ref{syntax}.
+
+\section{Recursion-Schemes}\label{recursion-schemes}
+    In order to recursively connect subexpressions together, we form a core ADT:
+\begin{minted}{haskell}
+data Expr
+  = Evar Var
+  | Eapp (App Expr)
+  | Elet (Let Expr)
+  | Eif (If Expr)
+  | Edecs (Decs Expr)
+  | Elambda (Lambda (N.NonEmpty Var) Expr)
+  | Efix (Fixer Expr)
+  | Elit Lit
+  | Eannotation (Annotated Expr NamedTypes)
+    deriving (Eq, Generic)
+makeBaseFunctor ''Expr
+\end{minted}
+    Recursion-schemes \cite{Meijer1991} allow recursive algorithms to decouple local computations from the patterns used in the recursive step.
+    This allows us to treat our \textbf{Expr} datatype as an \textit{F-algebra}~\cite{falgebra} and write our transformations as combinations of algebras and co-algebras over similar types.
+    Specifically, we make use of Haskell's recursion-schemes~\cite{kmett} library.
+    Combined with the use of effect systems (Polysemy \cite{polysemy}), this allowed breaking down the transformations into many smaller subproblems, and then composing them together into the final computed value.
+    The "makeBaseFunctor" template function creates an auxillary datatype, namely "ExprF" which now acts as our interface with recursion schemes.
+    This general method of structuring the compiler, allowed us to define different ADTs specific to each transformation, yet shared information is retained via the different datatypes for each construct.
+    For example, here's the definition of the ADT representing the possible values that the interpreter can produce:
+\begin{minted}{haskell}
+  data Value = Vlit Lit
+             | Vlambda (Lambda (N.NonEmpty Var) LambdaBody)
+             | VDecs (Decs Value)
+             | Empty
+\end{minted}
+    Notice how, even though we define a new ADT that must be changed when adding new language constructs, the actual datatypes are just wrappers connecting our general datatypes (such as Decs).
+    This trades off some duplication for flexibility, as such this occupies a point in the design space between full duplication and "Trees that grow".
+
+
+\section{Other compiler stages}\label{compiler-stages}
+    This section contains the details of other compilation stages and of their implementation. They all make use of the aforementioned ideas for making compiler structuring decisions.
+    \subsection{Renamer}\label{renamer}
+    The renamer keeps track of the scope of each variable and renames overlapping variables to an incremented version so that we don't worry about scope in later compiler passes:
+    \begin{minted}{haskell}
+        -----INPUT-----
+        x = 3;
+        x = 4;
+        z = "test";
+        y = \x -> let f = 4 in f + x;
+        main = x;
+        -----RENAMED-----
+        x = 3;
+        x#1 = 4;
+        z = "test";
+        y = \x#2 -> let f = 4;
+                    in ((Add f) x#2);
+        main = x#1;
+    \end{minted}
+    
+    This is the main renaming logic which just allows us to push and pop a variable stack:
+    \begin{minted}[fontsize=\footnotesize]{haskell}
+        data Scope = Scope {numShadowing :: Shadowing, stack :: [Shadowing]}
+        
+        type Renamer = M.Map Var Scope
+        
+        insertToScope :: Var -> Renamer -> Renamer
+        insertToScope =
+          M.alter $ Just . \case
+            Just (Scope g l) -> Scope (g + 1) (g + 1 : l)
+            Nothing -> Scope 0 $ [0]
+        
+        removeFromScope :: Var -> Renamer -> Renamer
+        removeFromScope = M.update \(Scope g l) -> Just (Scope g (tail l))
+    \end{minted}
+    A catamorphism is then used to recursively update the variables associated with individual scope levels, producing the final transformed AST.
+    
+    \subsection{Interpreter}\label{interpreter}
+    This is $\PULER$'s interpreter, it works by first ``blinding" the original expression tree, meaning it hides the body of functions from recursion schemes so that we never evaluate the values inside of the bodies of functions. It then converts the AST into a Value type (as defined above).
+    This is done with a catamorphism with access to a monad that keeps track of the scope of variables. The interpreter can even correctly evaluate the program without a renaming step.
+    \subsection{Autoformatter}
+    This is the autoformatter that comes with $\PULER$, it appropriately indents new lines if there isn't too much width space. Here's a short program:
+    \begin{minted}{haskell}
+    x = \test -> if True then 1 else 2
+    -----PARSED-----
+    x = \test -> if True
+                 then 1
+                 else 2;
+    \end{minted}
+    Here's a longer one:
+    \begin{minted}[fontsize=\footnotesize]{haskell}
+    -----INPUT-----
+    x = \test -> if True then "this is a very long message" else let y = 3 in ""
+    -----PARSED-----
+    x = \test ->
+        if True
+        then "this is a very long message"
+        else let y = 3;
+             in "";
+    \end{minted}
+    Notice that the autoformatter decided to insert a new line after $\to$ in the second case so that it can fit within 40 characters.
+    Similar to how the parser is defined, each datatype has its own pretty printer, which is then stringed together forming the full pretty-printable expression type.
+\subsection{Emission}\label{emission}
+    Finally, we emit the typed language to Python. The output is auto-formatted so it retains some readability even after transformation. The runtime is fairly simple, consisting of a few functions allowing the direct translation of any $\PULER$ program into Python. There are some extra tools in the emission code allowing the computation of the free variables computing the environment of every function and such, but for Python since we can create lambdas, then there's no need to create closures ourselves. The compiler initially was targeting C, however the combination of partial applications and C having no ability to create lambdas meant, if done naively, the generated output would create $n$ functions for every $n$-variable function leading to much duplication. Another possibility is mallocing the environment of a function upon creation; storing it in a struct that also stores the arguments to the function, then when applying a single argument, simply assign the value to the argument in the struct. Now our function would be passed as a struct of arguments and an environment. When the last argument is provided, that's where we actually call the function. The only problem with this approach is that it requires tagging the functions to figure out when the final application is happening. The method we have tried create a  tight coupling between the language and the backend. So we opted to emit to a language with closures. Namely, Python.
+\section{REPL}\label{REPL}
+    The language also includes a Read Eval Print Loop, which allows users to run valid (or invalid) $\PULER$ and interact with the language. This works by using the conext associated to every stateful operation in our architecture. Meaning the same code that tracks information like the current scope of variables is reused in the REPL to keep this state live. We can also get the benefit of providing features like autocomplete since the context is mostly tracked using dictionaries. Another feature is that we can load files into the REPL, if you write a $\PULER$ program and save it, you can start a REPL that evaluates it and allows you to write code with it as part of the context. I found this to be immensely useful when debugging.

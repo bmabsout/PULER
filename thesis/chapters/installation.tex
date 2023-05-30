@@ -1,0 +1,12 @@
+\chapter{Installation instructions}
+\label{installation}
+\thispagestyle{myheadings}
+
+\begin{enumerate}
+    \item Clone the following repository: \href{https://github.com/bmabsout/PULER.git}{$\PULER$}
+    \item Install the \href{https://nixos.org/nix/}{nix package manager} and enable flakes
+    \item Navigate to the $\PULER$ folder
+    \item Run the \mintinline{bash}{nix develop} command which puts you in a reproducible environment with the exact packages (and packages versions) required to compile the compiler
+    \item Compile the code by running \mintinline{bash}{ghc -O2 Main.hs}
+    \item Now you can use the compiler by calling \mintinline{bash}{./Main}
+\end{enumerate}

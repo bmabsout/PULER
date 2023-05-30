@@ -1,0 +1,22 @@
+\chapter{Introduction}
+\label{chapter:Introduction}
+\thispagestyle{myheadings}
+
+    Typical programming language compilers are comprised of various \textit{stages} that are chained together producing a final output from an initial input program.
+    These stages can include parsing, renaming, type inference, optimization, and emission.
+    For example, a C compiler takes as input a C program, which goes through these transformations and finally produces machine code.
+    Similarly the Purescript \cite{purescript} compiler produces JavaScript. While these transformations share abstract language constructs like \textbf{let-in} statements, \textbf{lambda} abstractions, and \textbf{if-then-else} statements \cite{Pierce2002-px}, they also require transformation-specific information to be tracked.
+    For instance, during type inference, a data-structure storing the language's expressions \textbf{decorated} with their types and ununified variables must be defined~\cite{JavaCompilerDesign}. 
+
+    When compilers are implemented in a programming language supporting \textbf{Algebraic Data Types (ADTs)} \cite{ADTs}, they often contain multiple ADTs for each transformation, leading to duplication of effort, functionality, and difficulty in keeping the language's \textit{constructs} in sync.
+    Additionally, extending the language with new constructs becomes difficult as the language designer must add necessary mechanisms to every datatype and function.
+    Without a core datatype, bugs may arise since some intermediary ADTs may be left untouched, and the compiler may not reject the updated code. This issue presents itself in multiple different compiler implementations \cite{GHC, ocaml}, and is the core focus of a body of existing work \cite{Torgersen2004, Axelsson, openfunctions}.
+
+    Generalizing the goal of retaining both static type safety and functionality reuse, the "Expression problem" \cite{} defines the problem as a difficulty in extending both \textit{behavior} and \textit{representation}. We present Tree Shaping, a solution to the expression problem in Chatper~\ref{tree-shaping}.
+
+    We then introduce an experimental compiler making use of Tree Shaping as a case study of the effectiveness of the method, and study its implications in Chapter~\ref{compiler}.
+    This compiler accepts $\PULER$ programs, a new experimental \textit{ML-based} programming language presented in Chapter~\ref{puler} of this document.
+    It then invokes different transformation as required by the final output requested, for an example of the stages involved, see Chapter~\ref{compiler_stages}
+    One of the distinctive features of $\PULER$ is defining \textbf{unification rules} for type mismatches, forming types themselves and being treated as \textit{first-class} citizens in the type system.
+    In contrast, existing compilers mostly exit and produce an error upon a type mismatch.
+    Existing works focusing on this issue of type error debugging \cite{min_type_error} generate orthogonal constraints which are separately represented and solved (e.g. via \textbf{SMT} solvers), producing errors which help users figure out the root cause. These ideas are discussed in Chapter~\ref{type-system}.

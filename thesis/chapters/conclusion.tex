@@ -1,0 +1,7 @@
+\chapter{Conclusion}
+\label{conclusion}
+\thispagestyle{myheadings}
+
+After multiple iterations of compiler design, $\PULER$ has converged to the idea of having main datatypes stringed together to form algebras on which the algorithms forming compiler stages are built upon. In exploring this architecture, we've built a full programming language with multiple interesting features. The architecture made it easy to use the compiler as a library and build a REPL for example with very minimal amounts of code. We did notice however, that even with careful design in avoiding duplication, there is still boilerplate code which duplicates parts of the core ADT throughout compiler transformations. The sum types used tag each alternative branch with a name which is unnecessary in our approach since the datatypes are already unique. As such, we believe connecting the types of expressions together via strongly typed heterogenous lists \cite{hlist} would lead to an even more terse and composable interface, we leave this as an exploration in future work. 
+At its current state, we found it easier to add any type of construct to the language and fill in the implementation gaps, than otherwise would be the case without this architecture.
+Another remaining challenge is targetting C as a backend, the limitations of which may strain the architectural decisions made in $\PULER$.

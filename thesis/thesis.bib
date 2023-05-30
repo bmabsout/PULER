@@ -1,0 +1,354 @@
+@article{najd2017trees,
+	title        = {Trees that grow},
+	author       = {Najd, Shayan and Peyton Jones, Simon},
+	year         = 2017,
+	month        = {January},
+	journal      = {Journal of Universal Computer Science (JUCS)},
+	volume       = 23,
+	pages        = {47--62},
+	url          = {https://www.microsoft.com/en-us/research/publication/trees-that-grow/},
+	abstract     = {
+		We study the notion of extensibility in functional data types, as a new approach to the problem of decorating abstract syntax trees with additional information. We observed the need for such extensibility while redesigning the data types representing Haskell abstract syntax inside Glasgow Haskell Compiler (GHC).
+
+		Specifically, we describe a programming idiom that exploits type-level functions to allow a particular form of extensibility.  The approach scales to support existentials and generalised algebraic data types, and we can use pattern synonyms to make it quite convenient in practice.
+	},
+	chapter      = 1
+}
+
+@inproceedings{min_type_error,
+	title        = {Finding Minimum Type Error Sources},
+	author       = {Pavlinovic, Zvonimir and King, Tim and Wies, Thomas},
+	year         = 2014,
+	booktitle    = {Proceedings of the 2014 ACM International Conference on Object Oriented Programming Systems Languages &amp; Applications},
+	location     = {Portland, Oregon, USA},
+	publisher    = {Association for Computing Machinery},
+	address      = {New York, NY, USA},
+	series       = {OOPSLA '14},
+	pages        = {525–542},
+	doi          = {10.1145/2660193.2660230},
+	isbn         = 9781450325851,
+	url          = {https://doi.org/10.1145/2660193.2660230},
+	abstract     = {Automatic type inference is a popular feature of functional programming languages. If a program cannot be typed, the compiler typically reports a single program location in its error message. This location is the point where the type inference failed, but not necessarily the actual source of the error. Other potential error sources are not even considered. Hence, the compiler often misses the true error source, which increases debugging time for the programmer. In this paper, we present a general framework for automatic localization of type errors. Our algorithm finds all minimum error sources, where the exact definition of minimum is given in terms of a compiler-specific ranking criterion. Compilers can use minimum error sources to produce more meaningful error reports, and for automatic error correction. Our approach works by reducing the search for minimum error sources to an optimization problem that we formulate in terms of weighted maximum satisfiability modulo theories (MaxSMT). The reduction to weighted MaxSMT allows us to build on SMT solvers to support rich type systems and at the same time abstract from the concrete criterion that is used for ranking the error sources. We have implemented an instance of our framework targeted at Hindley-Milner type systems and evaluated it on existing OCaml benchmarks for type error localization. Our evaluation shows that our approach has the potential to significantly improve the quality of type error reports produced by state of the art compilers.},
+	numpages     = 18,
+	keywords     = {satisfiability modulo theories, diagnostics, type errors}
+}
+
+@book{purescript, 
+    title = {PureScript by Example},
+    author = {Phil Freeman},
+    publisher = {https://leanpub.com/purescript},
+    note = {\url{https://leanpub.com/purescript}},
+    year = {2017}
+}
+
+@article{ADTs,
+  doi = {10.1007/bf00260922},
+  url = {https://doi.org/10.1007/bf00260922},
+  year = {1978},
+  publisher = {Springer Science and Business Media {LLC}},
+  volume = {10},
+  number = {1},
+  author = {J.V. Guttag and J.J. Horning},
+  title = {The algebraic specification of abstract data types},
+  journal = {Acta Informatica}
+}
+
+@BOOK{Pierce2002-px,
+  title     = "Types and Programming Languages",
+  author    = "Pierce, Benjamin C",
+  publisher = "MIT Press",
+  series    = "The MIT Press",
+  month     =  jan,
+  year      =  2002,
+  address   = "London, England",
+  language  = "en"
+}
+
+@inproceedings{Hindley-Milner,
+  doi = {10.1145/582153.582176},
+  url = {https://doi.org/10.1145/582153.582176},
+  year = {1982},
+  publisher = {{ACM} Press},
+  author = {Luis Damas and Robin Milner},
+  title = {Principal type-schemes for functional programs},
+  booktitle = {Proceedings of the 9th {ACM} {SIGPLAN}-{SIGACT} symposium on Principles of programming languages  - {POPL} {\textquotesingle}82}
+}
+
+@BOOK{Aho2006-tf,
+  title     = "Compilers",
+  author    = "Aho, Alfred V and Lam, Monica S and Sethi, Ravi and Ullman,
+               Jeffrey D",
+  publisher = "Pearson",
+  edition   =  2,
+  month     =  aug,
+  year      =  2006,
+  address   = "Upper Saddle River, NJ"
+}
+
+@inproceedings{GHC,
+  title={The Glasgow Haskell Compiler},
+  author={Simon Marlow and Simon L. Peyton Jones},
+  year={2012}
+}
+
+@BOOK{DSL,
+  title     = "{Domain-Specific} Languages",
+  author    = "Fowler, Martin and Parsons, Rebecca",
+  publisher = "Addison-Wesley Educational",
+  month     =  sep,
+  year      =  2010,
+  address   = "Boston, MA"
+}
+
+@INCOLLECTION{JavaCompilerDesign,
+  title     = "Introduction",
+  booktitle = "Modern Compiler Implementation in Java",
+  author    = "Appel, Andrew W and Palsberg, Jens",
+  publisher = "Cambridge University Press",
+  pages     = "3--15",
+  month     =  oct,
+  year      =  2002,
+  address   = "Cambridge"
+}
+
+@inbook{BNF,
+author = {McCracken, Daniel D. and Reilly, Edwin D.},
+title = {Backus-Naur Form (BNF)},
+year = {2003},
+isbn = {0470864125},
+publisher = {John Wiley and Sons Ltd.},
+address = {GBR},
+abstract = {Backus-Naur Form, named after John W. Backus of the US and Peter Naur of Denmark, and usually written BNF, is the best-known example of a meta-language (q.v.), i.e. one that syntactically describes a programming language. Using BNF it is possible to specify which sequences of symbols constitute a syntactically valid program in a given language. (The question of semantics--i.e, what such valid strings of symbols mean--must be specified separately.) A discussion of the basic concepts of BNF follows.},
+booktitle = {Encyclopedia of Computer Science},
+pages = {129–131},
+numpages = {3}
+}
+
+@phdthesis{propagators,
+  title={Propagation networks: A flexible and expressive substrate for computation},
+  author={Radul, Alexey},
+  year={2009},
+  school={Massachusetts Institute of Technology}
+}
+
+@incollection{Meijer1991,
+  doi = {10.1007/3540543961_7},
+  url = {https://doi.org/10.1007/3540543961_7},
+  year = {1991},
+  publisher = {Springer Berlin Heidelberg},
+  pages = {124--144},
+  author = {Erik Meijer and Maarten Fokkinga and Ross Paterson},
+  title = {Functional programming with bananas,  lenses,  envelopes and barbed wire},
+  booktitle = {Functional Programming Languages and Computer Architecture}
+}
+
+ @misc{kmett, title={Recursion-schemes}, url={https://hackage.haskell.org/package/recursion-schemes}, journal={Hackage}, author={Kmett, Edward}} 
+
+@misc{polysemy, title={Polysemy}, url={https://hackage.haskell.org/package/polysemy}, journal={Hackage}, author={Sandy, Maguire}} 
+@misc{falgebra, title={F-Algebras}, url={https://bartoszmilewski.com/2017/02/28/f-algebras/}, author={Bartosz, Milewski}} 
+@misc{ocaml, title={OCaml}, url={https://v2.ocaml.org/manual/}, author={}} 
+@misc{expression_problem, title={Expression Problem}, url={https://homepages.inf.ed.ac.uk/wadler/papers/expression/expression.txt}, author={Philip Wadler}} 
+
+@incollection{barbed_wires,
+  doi = {10.1007/3540543961_7},
+  url = {https://doi.org/10.1007/3540543961_7},
+  year = {1991},
+  publisher = {Springer Berlin Heidelberg},
+  pages = {124--144},
+  author = {Erik Meijer and Maarten Fokkinga and Ross Paterson},
+  title = {Functional programming with bananas,  lenses,  envelopes and barbed wire},
+  booktitle = {Functional Programming Languages and Computer Architecture}
+}
+
+@incollection{final_tagless,
+  doi = {10.1007/978-3-540-76637-7_15},
+  url = {https://doi.org/10.1007/978-3-540-76637-7_15},
+  publisher = {Springer Berlin Heidelberg},
+  pages = {222--238},
+  author = {Jacques Carette and Oleg Kiselyov and Chung-chieh Shan},
+  title = {Finally Tagless,  Partially Evaluated},
+  booktitle = {Programming Languages and Systems}
+}
+
+ @article{DUGGAN199637,
+title = {Explaining type inference},
+journal = {Science of Computer Programming},
+volume = {27},
+number = {1},
+pages = {37-83},
+year = {1996},
+issn = {0167-6423},
+doi = {https://doi.org/10.1016/0167-6423(95)00007-0},
+url = {https://www.sciencedirect.com/science/article/pii/0167642395000070},
+author = {Dominic Duggan and Frederick Bent},
+abstract = {Type inference is the compile-time process of reconstructing missing type information in a program based on the usage of its variables. ML and Haskell are two languages where this aspect of compilation has enjoyed some popularity, allowing type information to be omitted while static type checking is still performed. Type inference may be expected to have some application in the prototyping and scripting languages which are becoming increasingly popular. A difficulty with type inference is the confusing and sometimes counter-intuitive diagnostics produced by the type checker as a result of type errors. A modification of the unification algorithm used in Hindley-Milner type inference is presented, which allows the specific reasoning which led to a program variable having a particular type to be recorded for type explanation. This approach is close to the intuitive process used in practice for debugging type errors. The algorithm is practical, and has been implemented in the Standard ML of New Jersey compiler. The modified unification algorithm also appears useful in other domains, including logic program debuggers and semantics-based programming environments.}
+}
+
+@inproceedings{type_errors_src,
+author = {Wand, Mitchell},
+title = {Finding the Source of Type Errors},
+year = {1986},
+isbn = {9781450373470},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/512644.512648},
+doi = {10.1145/512644.512648},
+abstract = {It is a truism that most bugs are detected only at a great distance from their source. Although polymorphic type-checking systems like those in ML help greatly by detecting potential run-time type errors at compile-time, such systems are still not very helpful for locating the source of a type error. Typically, an error is reported only when the type-checker can proceed no further, even though the programmer's actual error may have occurred much earlier in the text. We describe an algorithm which appears to be quite helpful in isolating and explaining the source of type errors. The algorithm works by keeping track of the <i>reasons</i> the checker makes deductions about the types of variables.},
+booktitle = {Proceedings of the 13th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages},
+pages = {38–43},
+numpages = {6},
+location = {St. Petersburg Beach, Florida},
+series = {POPL '86}
+}
+
+@incollection{Gast2005,
+  doi = {10.1007/11431664_5},
+  url = {https://doi.org/10.1007/11431664_5},
+  year = {2005},
+  publisher = {Springer Berlin Heidelberg},
+  pages = {72--89},
+  author = {Holger Gast},
+  title = {Explaining {ML} Type Errors by Data Flows},
+  booktitle = {Implementation and Application of Functional Languages}
+}
+
+@article{slicing_type_errors,
+author = {Tip, F. and Dinesh, T. B.},
+title = {A Slicing-Based Approach for Locating Type Errors},
+year = {2001},
+issue_date = {Jan. 2001},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {10},
+number = {1},
+issn = {1049-331X},
+url = {https://doi.org/10.1145/366378.366379},
+doi = {10.1145/366378.366379},
+abstract = {The effectiveness of a type-checking tool strongly depends on the accuracy of the positional information that is associated with type errors. We present an approach where the location associated with an error message e is defined as a slice Pe of the program P being type-checked. We show that this approach yields highly accurate positional information: Pe is a program that contains precisely those program constructs in P that caused error e. Semantically, we have the interesting property that type-checking Pe is guaranteed to produce the same error e. Our approach is completely language-independent and has been implemented for a significant subset of Pascal. We also report on experiments with object-oriented type systems, and with a subset of ML.},
+journal = {ACM Trans. Softw. Eng. Methodol.},
+month = {jan},
+pages = {5–55},
+numpages = {51},
+keywords = {type-checking, static semantics, program slicing, semantics-based tool generation, abstract interpretation}
+}
+
+@inproceedings{10.1145/1250734.1250783,
+author = {Lerner, Benjamin S. and Flower, Matthew and Grossman, Dan and Chambers, Craig},
+title = {Searching for Type-Error Messages},
+year = {2007},
+isbn = {9781595936332},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1250734.1250783},
+doi = {10.1145/1250734.1250783},
+abstract = {Advanced type systems often need some form of type inference to reduce the burden of explicit typing, but type inference often leads to poor error messages for ill-typed programs. This work pursues a new approach to constructing compilers and presenting type-error messages in which the type-checker itself does not produce the messages. Instead, it is an oracle for a search procedure that finds similar programs that do type-check. Our two-fold goal is to improve error messages while simplifying compiler construction. Our primary implementation and evaluation is for Caml, a language with full type inference. We also present a prototype for C++ template functions, where type instantiation is implicit. A key extension is making our approach robust even when the program has multiple independent type errors.},
+booktitle = {Proceedings of the 28th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+pages = {425–434},
+numpages = {10},
+keywords = {error messages, type-checking, seminal, type-inference, objective Caml},
+location = {San Diego, California, USA},
+series = {PLDI '07}
+}
+
+@article{constraint_errors,
+author = {Lerner, Benjamin S. and Flower, Matthew and Grossman, Dan and Chambers, Craig},
+title = {Searching for Type-Error Messages},
+year = {2007},
+issue_date = {June 2007},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {42},
+number = {6},
+issn = {0362-1340},
+url = {https://doi.org/10.1145/1273442.1250783},
+doi = {10.1145/1273442.1250783},
+abstract = {Advanced type systems often need some form of type inference to reduce the burden of explicit typing, but type inference often leads to poor error messages for ill-typed programs. This work pursues a new approach to constructing compilers and presenting type-error messages in which the type-checker itself does not produce the messages. Instead, it is an oracle for a search procedure that finds similar programs that do type-check. Our two-fold goal is to improve error messages while simplifying compiler construction. Our primary implementation and evaluation is for Caml, a language with full type inference. We also present a prototype for C++ template functions, where type instantiation is implicit. A key extension is making our approach robust even when the program has multiple independent type errors.},
+journal = {SIGPLAN Not.},
+month = {jun},
+pages = {425–434},
+numpages = {10},
+keywords = {error messages, type-checking, objective Caml, type-inference, seminal}
+}
+
+
+@inproceedings{type_error_diagnose,
+author = {Stuckey, Peter J. and Sulzmann, Martin and Wazny, Jeremy},
+title = {Improving Type Error Diagnosis},
+year = {2004},
+isbn = {1581138504},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1017472.1017486},
+doi = {10.1145/1017472.1017486},
+abstract = {We present a number of methods for providing improved type error reports in the Haskell and Chameleon programming languages. We build upon our previous work [19] where we first introduced the idea of discovering type errors by translating the typing problem into a constraint problem and looking for minimal unsatisfiable subsets of constraints. This allowed us to find precise sets of program locations which are in conflict with each other. Here we extend this approach by extracting additional useful information from these minimal unsatisfiable sets. This allows us to report errors as conflicts amongst a number of possible, candidate types. The advantage of our approach is that it offers implementors the flexibility to employ heuristics to select where, amongst all the locations involved, an error should be reported. In addition, we present methods for providing improved subsumption and ambiguity error reporting.},
+booktitle = {Proceedings of the 2004 ACM SIGPLAN Workshop on Haskell},
+pages = {80–91},
+numpages = {12},
+keywords = {type classes, Hindley/Milner, type debugging, constraints, type inference, overloading},
+location = {Snowbird, Utah, USA},
+series = {Haskell '04}
+}
+
+@incollection{Torgersen2004,
+  doi = {10.1007/978-3-540-24851-4_6},
+  url = {https://doi.org/10.1007/978-3-540-24851-4_6},
+  year = {2004},
+  publisher = {Springer Berlin Heidelberg},
+  pages = {123--146},
+  author = {Mads Torgersen},
+  title = {The Expression Problem Revisited},
+  booktitle = {{ECOOP} 2004 {\textendash} Object-Oriented Programming}
+}
+@inproceedings{Axelsson,
+author = {Axelsson, Emil},
+title = {A Generic Abstract Syntax Model for Embedded Languages},
+year = {2012},
+isbn = {9781450310543},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2364527.2364573},
+doi = {10.1145/2364527.2364573},
+abstract = {Representing a syntax tree using a data type often involves having many similar-looking constructors. Functions operating on such types often end up having many similar-looking cases. Different languages often make use of similar-looking constructions. We propose a generic model of abstract syntax trees capable of representing a wide range of typed languages. Syntactic constructs can be composed in a modular fashion enabling reuse of abstract syntax and syntactic processing within and across languages. Building on previous methods of encoding extensible data types in Haskell, our model is a pragmatic solution to Wadler's "expression problem". Its practicality has been confirmed by its use in the implementation of the embedded language Feldspar.},
+booktitle = {Proceedings of the 17th ACM SIGPLAN International Conference on Functional Programming},
+pages = {323–334},
+numpages = {12},
+keywords = {embedded domain-specific languages, the expression problem, generic programming},
+location = {Copenhagen, Denmark},
+series = {ICFP '12}
+}
+
+@inproceedings{openfunctions,
+author = {L\"{o}h, Andres and Hinze, Ralf},
+title = {Open Data Types and Open Functions},
+year = {2006},
+isbn = {1595933883},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1140335.1140352},
+doi = {10.1145/1140335.1140352},
+abstract = {The problem of supporting the modular extensibility of both data and functions in one programming language at the same time is known as the expression problem. Functional languages traditionally make it easy to add new functions, but extending data (adding new data constructors) requires modifying existing code. We present a semantically and syntactically lightweight variant of open data types and open functions as a solution to the expression problem in the Haskell language. Constructors of open data types and equations of open functions may appear scattered throughout a program with several modules. The intended semantics is as follows: the program should behave as if the data types and functions were closed, defined in one place. The order of function equations is determined by best-fit pattern matching, where a specific pattern takes precedence over an unspecific one. We show that our solution is applicable to the expression problem, generic programming, and exceptions. We sketch two implementations: a direct implementation of the semantics, and a scheme based on mutually recursive modules that permits separate compilation},
+booktitle = {Proceedings of the 8th ACM SIGPLAN International Conference on Principles and Practice of Declarative Programming},
+pages = {133–144},
+numpages = {12},
+keywords = {extensible functions, functional programming, Haskell, extensible data types, expression problem, extensible exceptions, generic programming, mutually recursive modules},
+location = {Venice, Italy},
+series = {PPDP '06}
+}
+
+@inproceedings{hlist,
+author = {Kiselyov, Oleg and L\"{a}mmel, Ralf and Schupke, Keean},
+title = {Strongly Typed Heterogeneous Collections},
+year = {2004},
+isbn = {1581138504},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1017472.1017488},
+doi = {10.1145/1017472.1017488},
+abstract = {A heterogeneous collection is a datatype that is capable of storing data of different types, while providing operations for look-up, update, iteration, and others. There are various kinds of heterogeneous collections, differing in representation, invariants, and access operations. We describe HLIST - a Haskell library for strongly typed heterogeneous collections including extensible records. We illustrate HLIST's benefits in the context of type-safe database access in Haskell. The HLIST library relies on common extensions of Haskell 98. Our exploration raises interesting issues regarding Haskell's type system, in particular, avoidance of overlapping instances, and reification of type equality and type unification.},
+booktitle = {Proceedings of the 2004 ACM SIGPLAN Workshop on Haskell},
+pages = {96–107},
+numpages = {12},
+keywords = {type improvement, haskell, type-indexed rows, dependently typed programming, collections, extensible records, type-safe database access, type equality},
+location = {Snowbird, Utah, USA},
+series = {Haskell '04}
+}

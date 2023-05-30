@@ -1,0 +1,116 @@
+\chapter{Examples}
+\label{examples}
+\thispagestyle{myheadings}
+
+
+\section{Example Program}
+\begin{minted}{haskell}
+    fib = fix fib \x ->
+        if x == 0
+        then 0
+        else if x == 1
+             then 1
+             else (fib (x-1)) + (fib (x-2));
+    
+    main = (fib 8);
+    >>
+    21
+\end{minted}
+
+\section{Example Commands}
+    \subsection{REPL example}
+    Open a repl and run expressions as well as check their types:
+    \begin{minted}{bash}
+        > PULER repl
+        Welcome to PULER!
+    \end{minted}
+    \begin{minted}{haskell}
+        λ> x = 1
+        x = 1;
+        λ> y = \z -> z
+        y = \z -> <body>;
+        λ> :t (y x)
+        (y: Int -> Int x: Int): Int
+        λ> (y x) + 1
+        2
+        λ> (Print "test")
+        "test"
+        {}
+    \end{minted}
+
+    
+    \subsection{Compilation stages example}\label{compiler_stages}
+    Compile an example *.pul file implementing the factorial function
+    \mint{bash}|    > PULER example.pul|
+    \begin{minted}[fontsize=\footnotesize]{haskell}
+        -----INPUT-----
+        fact = fix f \x ->
+                      if x == 0
+                      then 1
+                      else let nextFac = x * (f (x - 1));
+                               p = (Print (Int2Str nextFac))
+                           in nextFac;
+        main = let g = (fact 8) in {};
+        
+        -----PARSED-----
+        fact = fix f \x -> if ((EqInt x) 0)
+                           then 1
+                           else let nextFac = ((Mul x) (f ((Sub x) 1)));
+                                    p = (Print (Int2Str nextFac));
+                                in nextFac;
+        main = let g = (fact 8);
+               in {};
+        -----RENAMED-----
+        fact = fix f \x -> if ((EqInt x) 0)
+                           then 1
+                           else let nextFac = ((Mul x) (f ((Sub x) 1)));
+                                    p = (Print (Int2Str nextFac));
+                                in nextFac;
+        main = let g = (fact 8);
+               in {};
+        -----INFERRED-----
+        fact = fix f \x -> if ((EqInt x:Int):Int->Bool 0:Int):Bool
+                           then 1:Int
+                           else let nextFac = ((Mul x:Int):Int->Int
+                                                 (f:Int->Int ((Sub x:Int):Int->Int
+                                                                1:Int):Int):Int):Int;
+                                    p = (Print (Int2Str nextFac:Int):String):{};
+                                in nextFac:Int:Int:Int:Int->Int;
+        main = let g = (fact:Int->Int 8:Int):Int;
+               in {}:{}:{};:{}
+        -----CHECKED-----
+        Typechecks!
+        -----EVALUATED-----
+        1
+        2
+        6
+        24
+        120
+        720
+        5040
+        40320
+        {}
+        -----EMITTED-----
+        fact = fix(lambda f: lambda x:(
+            (
+                1
+            ) if (
+                EqInt(x)(0)
+            ) else (
+                let(
+                  nextFac = Mul(x)(f(Sub(x)(1))),
+                inn = lambda nextFac:(
+                  let(
+                    p = Print(Int2Str(nextFac)),
+                  inn = lambda p:(
+                    nextFac
+                  ))
+                ))
+            )
+        ))
+        main = let(
+          g = fact(8),
+        inn = lambda g:(
+          unit
+        ))
+    \end{minted}

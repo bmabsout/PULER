@@ -1,0 +1,86 @@
+\chapter{$\PULER$}
+\label{puler}
+\thispagestyle{myheadings}
+
+$\PULER$ is an experimental ML based programming language that is strictly evaluated, partially applied, implements a Hindley-Milner-based \cite{Hindley-Milner} type system (Section~\ref{type-system}), and is lexically scoped (Section~\ref{renamer}). It can be interpreted (Section~\ref{interpreter}) or compiled (Section~\ref{compiler}). There's also a Read Eval Print Loop (REPL) (Section~\ref{repl}) available so that one can interact with the language live. The core language is simple, containing a few data types and language constructs. It can be extended through either adding compiler stages or minimally changing the representation used by the compiler to introduce new features. The language is functional first, meaning functions are first class citizens, and it disallows mutation, making it a referentially-transparent language.
+    
+One interesting feature of $\PULER$ is that the type system represents type mismatches. Unification rules are defined for mismatching types. This contrasts with typical programming languages' type checking implementations, which exit and produce an error immediately upon mismatch. We motivate 
+
+\section{Syntax}\label{syntax}
+$\PULER$'s syntax is very similar to languages like SML and Haskell. The following is a high-level \textbf{BNF}\cite{BNF} with the details in Parser.hs:
+
+\begin{align*}
+     \key{abs} & ::= \backslash \key{var} \to \key{subexpr} \\
+     \key{subexprs} & :: = \key{subexpr} | \key{subexpr} \; \key{subexprs}\\
+     \key{app} & ::= (\key{subexpr} \; \key{subexprs})\\
+     \key{lit} & ::= \key{string} \; | \; \key{integer} \; | \; \key{boolean} \; | \; \{\} \\
+     \key{dec} & ::= \key{variable} \text{=} \key{subexpr} \\
+     \key{decs} & ::= \key{dec} \; | \; \key{dec}\text{;} \; \key{decs} \\
+     \key{let} & ::= \text{let}\; \key{declerations} \; \text{in} \; \key{subexpr} \\
+     \key{fix} & ::= \text{fix} \; \key{var} \; \key{abs} \\
+     \key{type} & ::= \key{type} \to \key{type} \; | \; \{\} \; | \; Int \; | \; Bool \; | \; Str \\
+     \key{annotation} & ::= \key{subexpr} : \key{type} \\
+     \key{subexpr} & ::= \key{abs} \; | \; \key{lit} \; | \; \key{let} \; | \; \key{fix} \; | \; \key{annotation} \; | \; \key{app}
+\end{align*}
+
+At the top level of a $\PULER$ file $\key{decs}$ are expected.
+
+\subsection{Features}\label{features}
+    \begin{itemize}
+        \item Lexical scoping: The scope of every variable is exactly defined by the location of its definition. Meaning its scope is completely defined at compile time. Defining a variable with the same name as another variable that is in scope means that this new variable shadows the earlier defined one.
+        \item Partially applied: Applying an argument to a 3 argument function returns a function of 2 arguments instead of being an error.
+        \item Hindley-Milner-based type system: If the program is correct then no types will need to be written anywhere, it is all inferred.
+        \item Strict evaluation: The language is strictly evaluated, meaning function arguments are evaluated before the function is.
+        \item Immutable: Any operation or function cannot modify the value of an existing variable. This along with the ability to create pure functions makes the language referentially transparent (this behavior is not preserved when you use the only impure function in $\PULER$ which is \mintinline{haskell}{Print}). Meaning you can replace a variable by the statement used to create it. The $=$ operator is more like the mathematical definition of $=$ and less like the assignment we're used to in imperative programming languages.
+    \end{itemize}
+
+\section{Type system}\label{type-system}
+Multiple previous works have focused on the problem of type error localization.
+Some show relevant portions of failed type inference traces\cite{DUGGAN199637, type_errors_src}, others show a slice of the program involved in the error \cite{Gast2005, slicing_type_errors}.
+Other methods repeatedly call the typechecker, finding several error sources \cite{constraint_errors}.
+The most promising approach we've observed in this area comes from the works \citet{min_type_error, type_error_diagnose}, producing constraints which rank type errors and then are solved by an SMT solver.
+$\PULER$ makes no such choices, instead of producing an error and exiting the computation, the $\PULER$ type system keeps track of type mismatches.
+This is orthogonal to the works by \citet{min_type_error} as then the decision to show some errors can be taken later, or the user can be shown multiple different "views" of the possible errors that happened for flexibility in type error debugging.
+Note that the $\PULER$ compiler cannot currently handle all kinds of type errors this way, as an infinite occurs check (for preventing infinite types) also results in the compiler exiting.
+
+
+Type inference in $\PULER$ converts an \mintinline{haskell}{Expr} to a \mintinline{haskell}{Cofree ExprF INamedTypes}, this just means that we're annotating each node of the recursive abstract syntax tree with a type. The type inference algorithm does the following: It initializes each expression with unification variables and relates the unification variables with inference rules. Then we ``propagate" \cite{propagators} the knowledge gained through a pass of applying the inference rules. We repeat this process (while doing occurs checks) until no further knowledge can be gained. When this is done we return the annotated tree. This is the datatype describing the types used for inference:
+\begin{minted}{haskell}
+    data Itypes base
+      = Iunif Name
+      | IbaseType base
+      | Iarrow (Itypes base) (Itypes base)
+      | Imismatch [Itypes base]
+\end{minted}
+In order to precisely describe what it means for knowledge to increase, we allow any 2 types to be joined to create a type considered the least upperbound of both:
+\begin{minted}[fontsize=\footnotesize]{haskell}
+    instance Ord base => Semigroup (Itypes base) where
+      -- this is actually a join semilattice
+      a <> b | a == b = a
+      Imismatch as <> Imismatch bs = Imismatch (nubQuick (as ++ bs))
+      Iarrow a1 b1 <> Iarrow a2 b2 = Iarrow (a1 <> a2) (b1 <> b2)
+      a@(Iunif _) <> (Iunif _) = a
+      (Iunif a) <> b = b
+      a <> (Iunif b) = a
+      (Imismatch l) <> x = if x `elem` l then x else Imismatch (nubQuick $ x:l)
+      x <> (Imismatch l) = if x `elem` l then x else Imismatch (nubQuick $ x:l)
+      a <> b = Imismatch [a, b]
+\end{minted}
+When we have 2 different types we can now join them to create a \textit{``larger"} type. We now proceed by unifying types that are supposed to be equal (because of rules on the structure of the expression tree) by representing the types that are equal to each other as a disjoint set. Then we find the least upper bound of each disjoint set. Knowledge is then described as a map between each type and its corresponding ``joined" type. Once we have this map we can ``gain" knowledge by replacing any unification variables with a corresponding concrete type. This in turn will generate new types to unify. This process is repeated until this knowledge map is unchanging. What's nice about doing things this way is that we can give users as much information about the types of expressions as we can get even when the types mismatch or are kept ambiguous. Here's an example with mismatching and ununified types:
+\begin{minted}{haskell}
+x = 4;
+y = x + "string";
+main = (x 3);
+-----INFERRED-----
+x = 4:Int;
+y = ((Add x:[ Int
+            , String
+            , Int->?d ]):[ Int
+                         , String ]->Int
+       "string":String):[ Int
+                        , String
+                        , Int->?d ];
+main = (x:[Int, String, Int->?d]
+          3:Int):?d;:{}
+\end{minted}
+Notice that there are 3 different type errors in here. First when we see the type [a, b] this means that the types a and b don't match. We can see here that the type of x is inferred to be \mintinline{haskell}{[Int, String, Int->?d]}. Second when we see a ? symbol this means it is a unification variable and that this variable remained ununifiable. Then notice that x it's self is actually used in three separate incompatible ways. First x is set to be the number 4 which is an Int, then we're adding a string to x but you can't add strings to numbers so that creates the first mismatch, the second mismatch comes from using x as a function in main. Given that we never use the result of the function this means we don't ``know" what the result type is, which is another type error. Even though the output is currently verbose we could simply query the type of specific variables and this ability allows tracking the trace of a mismatch which we also found useful.

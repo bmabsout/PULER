@@ -1,0 +1,214 @@
+\chapter{The Expression Problem}
+\label{expression-problem}
+\thispagestyle{myheadings}
+
+The Programming language community has identified a general problem in program design which makes designing data abstractions that are extensible both in their representations and behaviors difficult. This is known as the expression problem \cite{expression_problem}. Constrained by the programming language's ability to express such an abstraction while retaining type safety, solving the problem has been the topic of study for many existing techniques of which some are presented in Section~\ref{existing_solutions}.
+
+\section{A Language of Shapes}
+We showcase the expression problem in a simplistic toy programming language of recursive shapes.
+\subsection{Syntax}
+The following defines the BNF of our shapes language:
+\begin{align*}
+    \key{expr}  ::=& \; (\text{Circle}\;\key{expr}) \\
+                |& \; (\text{Square}\;\key{square}) \\
+                |& \; \text{Leaf} \\
+    \key{square} ::=&\; \vtop{\hbox{$\key{expr} \; \key{expr}$}\hbox{$\key{expr} \; \key{expr}$}}\\
+\end{align*}
+
+\subsection{Example program}
+We would like to compile shapes programs to an image, an example such program and its compiled output are shown below: \\
+
+\begin{minipage}[]{0.5\linewidth}
+    \begin{minted}[]{haskell}
+(Circle
+  (Square
+    Leaf (Circle Leaf)
+    Leaf Leaf
+  )
+)
+    \end{minted}
+\end{minipage}
+\begin{minipage}[]{0.5\linewidth}
+    \includesvg[width=0.75\linewidth]{diagrams/simple_example.svg}    
+\end{minipage}
+\\\\
+The important constraint is that the code which does the compilation may not be edited and now acts as a library. Any subsequent features which must be added can only import the initial library and use it.
+
+\subsection{Adding a behavior}
+We now request adding support for depth information, we would like to darken the background of the output image based on depth, as such:\\\\
+\includesvg[width=0.375\linewidth]{diagrams/with_depth.svg}
+
+Depending on the abstraction used for defining the initial library code this feature may require duplicating much of the code.
+
+\subsection{Adding a representation}
+As another feature, we ask the user to add a polygon representation which allows for adding arbitrary polygons to the language.
+The new syntax becomes:
+\begin{align*}
+    \key{expr}  ::=& \; (\text{Circle}\;\key{expr}) \\
+                |& \; (\text{Square}\;\key{square}) \\
+                |& (\text{Poly}\;[\key{polygon}])\\
+                |& \; \text{Leaf} \\
+    \key{square} ::=&\; \vtop{\hbox{$\key{expr} \; \key{expr}$}\hbox{$\key{expr} \; \key{expr}$}}\\
+    \key{polygon} ::=&\; \key{expr} \\
+                  |&\; \key{expr}, \key{polygon}\\
+\end{align*}
+The following is an example program and its new compiled output:\\\\
+\begin{minipage}[]{0.5\linewidth}
+    \begin{minted}[]{haskell}
+(Poly
+  [Leaf, Leaf, Leaf, (Circle Leaf),
+    Circle
+      (Square
+        Leaf (Circle Leaf)
+        Leaf Leaf
+      )
+  ]
+)
+    \end{minted}
+\end{minipage}
+\begin{minipage}[]{0.5\linewidth}
+    \includesvg[width=0.75\linewidth]{diagrams/with_poly.svg}    
+\end{minipage}
+
+\subsection{Combined}
+Finally, we would like to combine both features in a new program while reusing as much of the previous functionality as possible. This would be the output with both depth and polygons:\\\\
+\includesvg[width=0.375\linewidth]{diagrams/with_poly_and_depth.svg}
+
+\section{Existing solutions} \label{existing_solutions}
+Many works put forth solutions to the expression problem, such as:
+\begin{itemize}
+    \item The Tagless Final Representation \cite{final_tagless}
+    \item Trees That Grow \cite{najd2017trees}
+    \item Type Classes
+    \item Open Classes (These don't count, as there is no type safety)
+    \item Polymorphic Variants (Anonymous Discriminated Unions)
+    \item The Visitor Pattern \cite{expression_problem}
+\end{itemize}
+
+Examples of implementations of these solutions are available in the following repository: \url{https://github.com/bmabsout/TreeShaping}
+
+
+\section{Tree Shaping} \label{tree_shaping}
+As a solution to the expression problem, we present Tree Shaping. Tree Shaping is a method defined in Haskell for combining ADTs, Typeclasses, deriving mechanisms and Recursion-Schemes \cite{barbed_wires} (see Chapter~\ref{recursion-schemes} providing a satisfactory solution to the problem of extensionality while maintaining low functionality duplication. The main idea is summarized in the following steps:
+\begin{itemize}
+    \item Define a few parametrized data types
+    \item Auto-derive general typeclass instances for each data type such as a Functor instance
+    \item Create a Typeclass for each F-Algebra\cite{falgebra} representing functionalities
+    \item Collect the data types together into a recursive ADT
+    \item Use recursion-schemes for composing the final recursive function
+    \item Use free-monad based effect libraries with monadic recursion-schemes
+\end{itemize}
+
+For simplicity we ignore effect systems in the shapes example. The following shows a program using the Tree Shaping technique. Here are our core data types:
+\begin{minted}{haskell}
+data Square a = Sq {topl :: a, topr :: a, botl :: a, botr :: a}
+  deriving (Show, Eq, Functor, Foldable, Traversable)
+
+data Circle a = Circ a
+  deriving (Show, Eq, Functor, Foldable, Traversable)
+\end{minted}
+Followed by our recursive type (We can automatically generate its corresponding generalized base type
+\begin{minted}{haskell}
+data Shapes =
+  S (Square Shapes) | C (Circle Shapes) | Leaf
+makeBaseFunctor ''Shapes
+\end{minted}
+
+With a few pattern synonyms for having a nice way to construct instances of the shapes language:
+\begin{minted}{haskell}
+pattern Square{topl, topr, botl, botr} = S (Sq {topl, topr, botl, botr})
+pattern Circle a = C (Circ a)
+\end{minted}
+
+We end up with the ability to write our program as:
+\begin{minted}{haskell}
+example =
+  Circle $
+    Circle $
+      Square
+        (Circle (Circle Leaf)) (Circle Leaf)
+        Leaf                   (Circle Leaf)
+\end{minted}
+
+Now we create our typeclass for drawing the shape as follows:
+\begin{minted}{haskell}
+class Drawable f where
+  draw :: (Renderable (Path V2 Double) a) => f (Diag a) -> Diag a
+
+instance Drawable Square where
+  draw sq = subDiagram # center <> square (maximum $ size subDiagram) # themed
+    where
+      paddedSq = padSubDiagsAndResize sq
+      subDiagram =
+            (paddedSq.topl ||| paddedSq.topr)
+        === (paddedSq.botl ||| paddedSq.botr)
+
+instance Drawable Circle where
+  draw :: Renderable (Path V2 Double) a => Circle (Diag a) -> Diag a
+  draw (Circ subDiagram) =
+    subDiagram <> circle (norm (size subDiagram) / 2) # themed
+\end{minted}
+\clearpage
+We can now build our algebra and create the recursive function via a catamorphism:
+\begin{minted}{haskell}
+drawShapeF :: _ => Diag a -> ShapesF (Diag a) -> Diag a
+drawShapeF leaf = \case
+  SF s  -> draw s
+  CF s  -> draw s
+  LeafF -> leaf
+
+drawShape :: _ => Diag a -> Shapes -> Diag a
+drawShape leaf = cata (drawShapeF leaf)
+\end{minted}
+All of the previous code acts as our library, now we would like to add depth information, so we use a different data structure which supports decorating our recursive tree with extra information (Cofree):
+\begin{minted}{haskell}
+addDepth :: (Recursive t) => t -> Word -> Cofree (Base t) Word
+addDepth = cata \s w -> w :< (($ w+1) <$> s)
+
+drawWithDepth :: (Integral n, Functor f) =>
+    (Diag a -> f (Diag a) -> Diag a) -> Cofree f n -> Diag a -> Diag a
+drawWithDepth diagAlg withDepth leaf =
+    cata (\(d F.:< w) -> depthToTheme d (diagAlg leaf w)) withDepth
+\end{minted}
+
+Adding the polygon representation can now be created along with a new ADT reusing ShapesF:
+
+\begin{minted}{haskell}
+newtype Poly a = PolyC [a]
+  deriving (Show, Eq, Functor, Foldable, Traversable)
+
+data WithPoly
+  = Orig (ShapesF WithPoly)
+  | Pol (Poly WithPoly)
+\end{minted}
+
+Now we just need need to add the Drawable instance for the Poly type:
+\begin{minted}{haskell}
+instance Drawable Poly where
+  draw (PolyC subShapes) = subDiagram2 <> polyDag # themed
+    where
+        shapes = padSubDiagsAndResize subShapes
+        numShapes :: Num b => b
+        numShapes = fromIntegral (length subShapes)
+        r = norm $ size (head shapes)
+        theta = pi / numShapes
+        l = r/(2*sin theta)
+        directions = iterate (rotateBy (1 / numShapes)) (V2 0 l)
+        subDiagram2 = zipWith translate directions shapes # mconcat
+        polyDag = regPoly numShapes (r * tan theta + r)
+\end{minted}
+
+Finally we get our final algebra via reusing the previous algebra and using the instance defined above.
+
+\begin{minted}{haskell}
+drawWithPolyF leaf (OrigF shapeF) = drawShapeF leaf shapeF
+drawWithPolyF _ (PolF subShapes) = draw subShapes
+
+drawWithPoly :: _ => Diag a -> WithPoly -> Diag a
+drawWithPoly leaf = cata (drawWithPolyF leaf)
+\end{minted}
+
+The final test is composing both behavior and the new structure, and the following ends up just being a function call:
+\begin{minted}{haskell}
+drawWithDepth drawWithPolyF (addDepth example 0)
+\end{minted}
