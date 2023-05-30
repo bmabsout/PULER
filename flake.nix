@@ -11,6 +11,7 @@
             haskell.haskell
             justusadam.language-haskell
           ]);
+          
           vscodium-with-extensions = pkgs.vscode-with-extensions.override {
             vscode = pkgs.vscodium;
             vscodeExtensions = extensions;
@@ -36,14 +37,24 @@
             polysemy-zoo
           ]);
       in {
-        devShell = pkgs.mkShell {
-          buildInputs = [
-            ghc-with-deps
-            pkgs.haskell-language-server
-            vscodium-with-extensions
-            pkgs.python3
-          ];
+
+         devShell = pkgs.mkShell {
+           buildInputs = [
+             ghc-with-deps
+             pkgs.haskell-language-server
+             vscodium-with-extensions
+             pkgs.python3
+           ];
+         };
+        apps.x86_64-linux.puler = {
+          type="app";
+          program = "${pkgs.writeShellApplication {
+            name= "PULER";
+            text= "${ghc-with-deps}/bin/ghc -O2 src/Main.hs -o ./bin/puler";
+          }}/bin/puler";
         };
       }
+
+
     );
 }
