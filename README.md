@@ -1,3 +1,5 @@
+This is the repo for the project used in my Masters [Thesis](thesis/thesis.pdf)
+
 #Instructions
 
 install the [nix package manager](https://nixos.org/nix/)
