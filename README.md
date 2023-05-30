@@ -2,7 +2,7 @@
 
 install the [nix package manager](https://nixos.org/nix/)
 
-run `nix-shell`
+run `nix develop`
 
 this will throw you into a reproducible shell with all the required tools to run PULER programs
 
